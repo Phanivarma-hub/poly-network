@@ -1,24 +1,25 @@
 import React, { useState, useEffect } from 'react';
 import { db } from '../../firebase';
-import { collection, query, where, getDocs, addDoc, doc, deleteDoc } from 'firebase/firestore';
+import { collection, query, where, getDocs, addDoc, doc, deleteDoc, updateDoc } from 'firebase/firestore';
 import { useAuth } from '../../context/AuthContext';
-import { Plus, Trash2, Shield, Hash, Layers, Loader2, Search } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { Plus, Trash2, Edit2, X, Loader2, Search } from 'lucide-react';
 
 const ClassManagement = () => {
     const { userData } = useAuth();
     const [classes, setClasses] = useState([]);
     const [loading, setLoading] = useState(true);
-    const [isAdding, setIsAdding] = useState(false);
-    const [newClass, setNewClass] = useState({
+    const [showModal, setShowModal] = useState(false);
+    const [editingClass, setEditingClass] = useState(null);
+    const [searchTerm, setSearchTerm] = useState('');
+    const [formData, setFormData] = useState({
         branch: '',
-        year: '2024',
+        year: new Date().getFullYear().toString(),
         semester: '1',
         section: 'A',
         pinValidationType: 'regex',
-        pinPattern: '^24[0-9]{3}$',
-        pinMin: 100,
-        pinMax: 999
+        pinPattern: '^[0-9]{5}$',
+        pinMin: 10000,
+        pinMax: 99999
     });
 
     const fetchClasses = async () => {
@@ -40,173 +41,290 @@ const ClassManagement = () => {
         fetchClasses();
     }, [userData]);
 
-    const handleAddClass = async (e) => {
+    const resetForm = () => {
+        setFormData({
+            branch: '',
+            year: new Date().getFullYear().toString(),
+            semester: '1',
+            section: 'A',
+            pinValidationType: 'regex',
+            pinPattern: '^[0-9]{5}$',
+            pinMin: 10000,
+            pinMax: 99999
+        });
+        setEditingClass(null);
+    };
+
+    const openModal = (cls = null) => {
+        if (cls) {
+            setEditingClass(cls);
+            setFormData({
+                branch: cls.branch,
+                year: cls.year,
+                semester: cls.semester,
+                section: cls.section,
+                pinValidationType: cls.pin_validation_rule.type,
+                pinPattern: cls.pin_validation_rule.pattern || '^[0-9]{5}$',
+                pinMin: cls.pin_validation_rule.min || 10000,
+                pinMax: cls.pin_validation_rule.max || 99999
+            });
+        } else {
+            resetForm();
+        }
+        setShowModal(true);
+    };
+
+    const handleSubmit = async (e) => {
         e.preventDefault();
         try {
             const classData = {
                 college_id: userData.college_id,
-                branch: newClass.branch,
-                year: newClass.year,
-                semester: newClass.semester,
-                section: newClass.section,
-                pin_validation_rule: newClass.pinValidationType === 'regex'
-                    ? { type: 'regex', pattern: newClass.pinPattern }
-                    : { type: 'range', min: parseInt(newClass.pinMin), max: parseInt(newClass.pinMax) }
+                branch: formData.branch,
+                year: formData.year,
+                semester: formData.semester,
+                section: formData.section,
+                pin_validation_rule: formData.pinValidationType === 'regex'
+                    ? { type: 'regex', pattern: formData.pinPattern }
+                    : { type: 'range', min: parseInt(formData.pinMin), max: parseInt(formData.pinMax) }
             };
-            await addDoc(collection(db, 'classes'), classData);
-            setIsAdding(false);
+
+            if (editingClass) {
+                await updateDoc(doc(db, 'classes', editingClass.id), classData);
+            } else {
+                await addDoc(collection(db, 'classes'), classData);
+            }
+
+            setShowModal(false);
+            resetForm();
             fetchClasses();
         } catch (err) {
-            console.error("Error adding class:", err);
+            console.error("Error saving class:", err);
         }
     };
 
-    const handleDeleteClass = async (id) => {
-        if (window.confirm("Are you sure? This will not delete students but will break association.")) {
+    const handleDelete = async (id) => {
+        if (window.confirm("Are you sure you want to delete this class? This will not delete associated students but will break their class association.")) {
             await deleteDoc(doc(db, 'classes', id));
             fetchClasses();
         }
     };
 
+    const filteredClasses = classes.filter(cls =>
+        cls.branch.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        cls.section.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+
+    if (loading) {
+        return (
+            <div className="loading">
+                <div className="spinner"></div>
+                Loading classes...
+            </div>
+        );
+    }
+
     return (
-        <div className="space-y-8">
-            <div className="flex justify-between items-end">
+        <div className="class-management">
+            <div className="page-header">
                 <div>
-                    <h2 className="text-3xl font-bold text-white mb-2">Class Management</h2>
-                    <p className="text-slate-400">Manage academic units and student PIN validation rules.</p>
+                    <h1 className="page-title">Class Management</h1>
+                    <p className="page-description">Manage academic units and PIN validation rules.</p>
                 </div>
-                <button
-                    onClick={() => setIsAdding(true)}
-                    className="bg-indigo-600 hover:bg-indigo-500 text-white font-bold px-6 py-3 rounded-2xl flex items-center gap-2 transition-all shadow-lg shadow-indigo-600/20"
-                >
-                    <Plus className="w-5 h-5" /> New Class
+                <button className="btn btn-primary" onClick={() => openModal()}>
+                    <Plus size={16} />
+                    New Class
                 </button>
             </div>
 
-            {loading ? <div className="text-slate-500">Loading academic units...</div> : (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {classes.map(cls => (
-                        <motion.div
-                            layout
-                            key={cls.id}
-                            className="bg-slate-900/40 border border-white/5 p-6 rounded-[24px] backdrop-blur-md group relative overflow-hidden"
-                        >
-                            <div className="flex justify-between items-start mb-4">
-                                <div className="bg-indigo-500/10 p-3 rounded-xl text-indigo-400">
-                                    <Layers className="w-6 h-6" />
-                                </div>
-                                <button
-                                    onClick={() => handleDeleteClass(cls.id)}
-                                    className="p-2 text-slate-600 hover:text-red-400 transition-colors"
-                                >
-                                    <Trash2 className="w-5 h-5" />
-                                </button>
-                            </div>
+            <div className="filters">
+                <div className="filter-group" style={{ flex: 1, maxWidth: '300px' }}>
+                    <Search size={16} style={{ color: 'var(--text-muted)' }} />
+                    <input
+                        type="text"
+                        className="form-input"
+                        placeholder="Search by branch or section..."
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                    />
+                </div>
+            </div>
 
-                            <h3 className="text-xl font-bold text-white mb-1">{cls.branch}</h3>
-                            <p className="text-slate-500 text-sm font-semibold mb-4 italic">
-                                Year {cls.year} • Sem {cls.semester} • Sec {cls.section}
-                            </p>
-
-                            <div className="bg-slate-950/50 p-4 rounded-xl border border-slate-800">
-                                <div className="flex items-center gap-2 text-[10px] uppercase tracking-widest font-bold text-slate-400 mb-2">
-                                    <Shield className="w-3 h-3" /> PIN Rule
-                                </div>
-                                <code className="text-xs text-indigo-300 break-all">
-                                    {cls.pin_validation_rule.type === 'regex'
-                                        ? `Regex: ${cls.pin_validation_rule.pattern}`
-                                        : `Range: ${cls.pin_validation_rule.min} - ${cls.pin_validation_rule.max}`
-                                    }
-                                </code>
-                            </div>
-                        </motion.div>
-                    ))}
+            {filteredClasses.length === 0 ? (
+                <div className="empty-state">
+                    <p>No classes found. Create your first class to get started.</p>
+                </div>
+            ) : (
+                <div className="table-container">
+                    <table className="table">
+                        <thead>
+                            <tr>
+                                <th>Branch</th>
+                                <th>Year</th>
+                                <th>Semester</th>
+                                <th>Section</th>
+                                <th>PIN Rule</th>
+                                <th style={{ width: '100px' }}>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {filteredClasses.map(cls => (
+                                <tr key={cls.id}>
+                                    <td style={{ color: 'var(--text-primary)', fontWeight: 500 }}>{cls.branch}</td>
+                                    <td>{cls.year}</td>
+                                    <td>{cls.semester}</td>
+                                    <td><span className="badge badge-primary">{cls.section}</span></td>
+                                    <td>
+                                        <code style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                                            {cls.pin_validation_rule.type === 'regex'
+                                                ? `Regex: ${cls.pin_validation_rule.pattern}`
+                                                : `Range: ${cls.pin_validation_rule.min} - ${cls.pin_validation_rule.max}`
+                                            }
+                                        </code>
+                                    </td>
+                                    <td>
+                                        <div style={{ display: 'flex', gap: '0.5rem' }}>
+                                            <button className="btn btn-secondary btn-icon btn-sm" onClick={() => openModal(cls)}>
+                                                <Edit2 size={14} />
+                                            </button>
+                                            <button className="btn btn-danger btn-icon btn-sm" onClick={() => handleDelete(cls.id)}>
+                                                <Trash2 size={14} />
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
                 </div>
             )}
 
-            {/* Add Class Modal */}
-            <AnimatePresence>
-                {isAdding && (
-                    <div className="fixed inset-0 z-50 flex items-center justify-center p-6 bg-black/60 backdrop-blur-sm">
-                        <motion.div
-                            initial={{ scale: 0.9, opacity: 0 }}
-                            animate={{ scale: 1, opacity: 1 }}
-                            exit={{ scale: 0.9, opacity: 0 }}
-                            className="bg-slate-900 border border-white/10 w-full max-w-xl rounded-[32px] overflow-hidden shadow-2xl"
-                        >
-                            <div className="p-8 border-b border-white/5 flex justify-between items-center">
-                                <h3 className="text-2xl font-bold text-white">Create New Class</h3>
-                                <button onClick={() => setIsAdding(false)} className="text-slate-500 hover:text-white"><Plus className="w-6 h-6 rotate-45" /></button>
-                            </div>
+            {/* Modal */}
+            {showModal && (
+                <div className="modal-overlay">
+                    <div className="modal">
+                        <div className="modal-header">
+                            <h3 className="modal-title">{editingClass ? 'Edit Class' : 'Create New Class'}</h3>
+                            <button className="modal-close" onClick={() => setShowModal(false)}>
+                                <X size={20} />
+                            </button>
+                        </div>
+                        <form onSubmit={handleSubmit}>
+                            <div className="modal-body">
+                                <div className="form-group">
+                                    <label className="form-label">Branch Name</label>
+                                    <input
+                                        type="text"
+                                        className="form-input"
+                                        required
+                                        placeholder="e.g. Computer Science"
+                                        value={formData.branch}
+                                        onChange={(e) => setFormData({ ...formData, branch: e.target.value })}
+                                    />
+                                </div>
 
-                            <form onSubmit={handleAddClass} className="p-8 space-y-6">
-                                <div className="grid grid-cols-2 gap-4">
-                                    <div className="col-span-2">
-                                        <label className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2 block">Branch Name</label>
+                                <div className="form-row">
+                                    <div className="form-group">
+                                        <label className="form-label">Year</label>
                                         <input
+                                            type="text"
+                                            className="form-input"
                                             required
-                                            className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-white outline-none focus:border-indigo-500 transition-all"
-                                            placeholder="e.g. Computer Engineering"
-                                            value={newClass.branch}
-                                            onChange={e => setNewClass({ ...newClass, branch: e.target.value })}
+                                            value={formData.year}
+                                            onChange={(e) => setFormData({ ...formData, year: e.target.value })}
                                         />
                                     </div>
-                                    <div>
-                                        <label className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2 block">Year</label>
-                                        <input
-                                            required className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-white outline-none focus:border-indigo-500"
-                                            value={newClass.year}
-                                            onChange={e => setNewClass({ ...newClass, year: e.target.value })}
-                                        />
-                                    </div>
-                                    <div>
-                                        <label className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2 block">Semester</label>
-                                        <input
-                                            required className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-white outline-none focus:border-indigo-500"
-                                            value={newClass.semester}
-                                            onChange={e => setNewClass({ ...newClass, semester: e.target.value })}
-                                        />
+                                    <div className="form-group">
+                                        <label className="form-label">Semester</label>
+                                        <select
+                                            className="form-select"
+                                            value={formData.semester}
+                                            onChange={(e) => setFormData({ ...formData, semester: e.target.value })}
+                                        >
+                                            {[1, 2, 3, 4, 5, 6, 7, 8].map(s => (
+                                                <option key={s} value={s}>{s}</option>
+                                            ))}
+                                        </select>
                                     </div>
                                 </div>
 
-                                <div className="bg-slate-950/50 p-6 rounded-2xl border border-slate-800">
-                                    <label className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-4 block">PIN Validation Logic</label>
-                                    <div className="flex gap-4 mb-6">
-                                        <button
-                                            type="button"
-                                            onClick={() => setNewClass({ ...newClass, pinValidationType: 'regex' })}
-                                            className={`flex-1 py-2 rounded-lg text-xs font-bold border transition-all ${newClass.pinValidationType === 'regex' ? 'bg-indigo-600 border-indigo-500 text-white' : 'border-slate-800 text-slate-500'}`}
-                                        >Regex Pattern</button>
-                                        <button
-                                            type="button"
-                                            onClick={() => setNewClass({ ...newClass, pinValidationType: 'range' })}
-                                            className={`flex-1 py-2 rounded-lg text-xs font-bold border transition-all ${newClass.pinValidationType === 'range' ? 'bg-indigo-600 border-indigo-500 text-white' : 'border-slate-800 text-slate-500'}`}
-                                        >Numeric Range</button>
-                                    </div>
+                                <div className="form-group">
+                                    <label className="form-label">Section</label>
+                                    <input
+                                        type="text"
+                                        className="form-input"
+                                        required
+                                        placeholder="e.g. A"
+                                        value={formData.section}
+                                        onChange={(e) => setFormData({ ...formData, section: e.target.value.toUpperCase() })}
+                                    />
+                                </div>
 
-                                    {newClass.pinValidationType === 'regex' ? (
+                                <div className="form-group">
+                                    <label className="form-label">PIN Validation Type</label>
+                                    <div style={{ display: 'flex', gap: '0.5rem' }}>
+                                        <button
+                                            type="button"
+                                            className={`btn btn-sm ${formData.pinValidationType === 'regex' ? 'btn-primary' : 'btn-secondary'}`}
+                                            onClick={() => setFormData({ ...formData, pinValidationType: 'regex' })}
+                                        >
+                                            Regex Pattern
+                                        </button>
+                                        <button
+                                            type="button"
+                                            className={`btn btn-sm ${formData.pinValidationType === 'range' ? 'btn-primary' : 'btn-secondary'}`}
+                                            onClick={() => setFormData({ ...formData, pinValidationType: 'range' })}
+                                        >
+                                            Numeric Range
+                                        </button>
+                                    </div>
+                                </div>
+
+                                {formData.pinValidationType === 'regex' ? (
+                                    <div className="form-group">
+                                        <label className="form-label">Regex Pattern</label>
                                         <input
-                                            className="w-full bg-slate-900 border border-slate-800 rounded-xl px-4 py-3 text-white text-xs font-mono"
-                                            value={newClass.pinPattern}
-                                            onChange={e => setNewClass({ ...newClass, pinPattern: e.target.value })}
+                                            type="text"
+                                            className="form-input"
+                                            placeholder="e.g. ^24CS[0-9]{3}$"
+                                            value={formData.pinPattern}
+                                            onChange={(e) => setFormData({ ...formData, pinPattern: e.target.value })}
                                         />
-                                    ) : (
-                                        <div className="flex items-center gap-4">
-                                            <input type="number" className="w-full bg-slate-900 border border-slate-800 rounded-xl px-4 py-3 text-white" value={newClass.pinMin} onChange={e => setNewClass({ ...newClass, pinMin: e.target.value })} />
-                                            <span className="text-slate-500">to</span>
-                                            <input type="number" className="w-full bg-slate-900 border border-slate-800 rounded-xl px-4 py-3 text-white" value={newClass.pinMax} onChange={e => setNewClass({ ...newClass, pinMax: e.target.value })} />
+                                    </div>
+                                ) : (
+                                    <div className="form-row">
+                                        <div className="form-group">
+                                            <label className="form-label">Min Value</label>
+                                            <input
+                                                type="number"
+                                                className="form-input"
+                                                value={formData.pinMin}
+                                                onChange={(e) => setFormData({ ...formData, pinMin: e.target.value })}
+                                            />
                                         </div>
-                                    )}
-                                </div>
-
-                                <button className="w-full bg-indigo-600 text-white font-bold py-4 rounded-xl shadow-lg shadow-indigo-600/20 active:scale-95 transition-all">
-                                    Confirm and Create Unit
+                                        <div className="form-group">
+                                            <label className="form-label">Max Value</label>
+                                            <input
+                                                type="number"
+                                                className="form-input"
+                                                value={formData.pinMax}
+                                                onChange={(e) => setFormData({ ...formData, pinMax: e.target.value })}
+                                            />
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+                            <div className="modal-footer">
+                                <button type="button" className="btn btn-secondary" onClick={() => setShowModal(false)}>
+                                    Cancel
                                 </button>
-                            </form>
-                        </motion.div>
+                                <button type="submit" className="btn btn-primary">
+                                    {editingClass ? 'Update Class' : 'Create Class'}
+                                </button>
+                            </div>
+                        </form>
                     </div>
-                )}
-            </AnimatePresence>
+                </div>
+            )}
         </div>
     );
 };
