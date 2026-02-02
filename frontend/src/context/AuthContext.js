@@ -87,8 +87,23 @@ export function AuthProvider({ children }) {
             throw new Error('User not found. Check your User ID and College Code.');
         }
 
-        // 3. Sign in with Firebase Auth using the resolved email
-        await signInWithEmailAndPassword(auth, userEmail, password);
+        // 3. Ensure the found user has an associated email for Firebase Auth
+        if (!userEmail) {
+            throw new Error('This account is not fully registered (missing email address). Please contact your administrator.');
+        }
+
+        // 4. Sign in with Firebase Auth using the resolved email
+        try {
+            await signInWithEmailAndPassword(auth, userEmail, password);
+        } catch (authError) {
+            if (authError.code === 'auth/wrong-password' || authError.code === 'auth/invalid-credential') {
+                throw new Error('Incorrect password for this user.');
+            }
+            if (authError.code === 'auth/user-not-found') {
+                throw new Error('No authentication account found for this email. Registration may be incomplete.');
+            }
+            throw authError;
+        }
 
         return { userDoc, userRole };
     }
@@ -97,6 +112,8 @@ export function AuthProvider({ children }) {
     async function loginWithEmail(email, password) {
         return signInWithEmailAndPassword(auth, email, password);
     }
+
+
 
     // Create new user with Firebase Auth
     async function register(email, password) {

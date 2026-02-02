@@ -19,8 +19,10 @@ const Navbar = () => {
     return (
         <nav className="navbar">
             <div className="navbar-brand">
-                <GraduationCap size={28} />
-                <span>Poly Network</span>
+                <div className="nav-logo-box">
+                    <img src="/campusnet-logo.jpg" alt="Logo" />
+                </div>
+                <span>CampusNet</span>
             </div>
 
             <div className="navbar-user">
