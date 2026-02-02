@@ -24,12 +24,14 @@ export function AuthProvider({ children }) {
             throw new Error('Invalid College Code');
         }
 
-        const collegeId = collegeSnapshot.docs[0].id;
+        const collegeDoc = collegeSnapshot.docs[0];
+        const collegeId = collegeDoc.id;
 
         // 2. Find user in admins, teachers, or students collection with matching college_id
-        let userDoc = null;
+        let foundUserDoc = null;
         let userRole = null;
         let userEmail = null;
+        let requiresFirebaseAuth = true;
 
         // Check admins
         const adminQuery = query(
@@ -37,10 +39,10 @@ export function AuthProvider({ children }) {
             where('college_id', '==', collegeId)
         );
         const adminSnapshot = await getDocs(adminQuery);
-        for (const doc of adminSnapshot.docs) {
-            const data = doc.data();
+        for (const docSnap of adminSnapshot.docs) {
+            const data = docSnap.data();
             if (data.uid === userId || data.email === userId || data.name === userId) {
-                userDoc = { id: doc.id, ...data };
+                foundUserDoc = { id: docSnap.id, ...data, college_id: collegeId };
                 userRole = 'admin';
                 userEmail = data.email;
                 break;
@@ -48,49 +50,63 @@ export function AuthProvider({ children }) {
         }
 
         // Check teachers
-        if (!userDoc) {
+        if (!foundUserDoc) {
             const teacherQuery = query(
                 collection(db, 'teachers'),
                 where('college_id', '==', collegeId)
             );
             const teacherSnapshot = await getDocs(teacherQuery);
-            for (const doc of teacherSnapshot.docs) {
-                const data = doc.data();
+            for (const docSnap of teacherSnapshot.docs) {
+                const data = docSnap.data();
                 if (data.uid === userId || data.email === userId) {
-                    userDoc = { id: doc.id, ...data };
+                    foundUserDoc = { id: docSnap.id, ...data, college_id: collegeId };
                     userRole = 'teacher';
                     userEmail = data.email;
+                    // Teachers use Firestore password (no Firebase Auth)
+                    requiresFirebaseAuth = false;
                     break;
                 }
             }
         }
 
         // Check students
-        if (!userDoc) {
+        if (!foundUserDoc) {
             const studentQuery = query(
                 collection(db, 'students'),
                 where('college_id', '==', collegeId)
             );
             const studentSnapshot = await getDocs(studentQuery);
-            for (const doc of studentSnapshot.docs) {
-                const data = doc.data();
-                if (data.pin === userId || data.uid === userId || data.email === userId) {
-                    userDoc = { id: doc.id, ...data };
+            for (const docSnap of studentSnapshot.docs) {
+                const data = docSnap.data();
+                if (data.pin === userId || data.uid === userId) {
+                    foundUserDoc = { id: docSnap.id, ...data, college_id: collegeId };
                     userRole = 'student';
-                    userEmail = data.email;
+                    // Students use Firestore password (no Firebase Auth)
+                    requiresFirebaseAuth = false;
                     break;
                 }
             }
         }
 
-        if (!userDoc) {
+        if (!foundUserDoc) {
             throw new Error('User not found. Check your User ID and College Code.');
         }
 
-        // 3. Sign in with Firebase Auth using the resolved email
-        await signInWithEmailAndPassword(auth, userEmail, password);
+        // 3. Authenticate
+        if (requiresFirebaseAuth && userEmail) {
+            // Admin uses Firebase Auth
+            await signInWithEmailAndPassword(auth, userEmail, password);
+        } else {
+            // Teachers and Students use Firestore password verification
+            if (foundUserDoc.password !== password) {
+                throw new Error('Invalid password.');
+            }
+            // Set user state directly for non-Firebase auth
+            setUser({ uid: foundUserDoc.id, email: foundUserDoc.email || null });
+            setUserData({ ...foundUserDoc, role: userRole });
+        }
 
-        return { userDoc, userRole };
+        return { userDoc: foundUserDoc, role: userRole };
     }
 
     // Standard Firebase Auth login (for direct email login)
@@ -104,6 +120,8 @@ export function AuthProvider({ children }) {
     }
 
     function logout() {
+        setUser(null);
+        setUserData(null);
         return signOut(auth);
     }
 
@@ -157,19 +175,10 @@ export function AuthProvider({ children }) {
                     }
                 }
 
-                if (!userDoc) {
-                    // Try to find by email in students
-                    const studentQuery = query(collection(db, 'students'), where('email', '==', currentUser.email));
-                    const studentSnapshot = await getDocs(studentQuery);
-                    if (!studentSnapshot.empty) {
-                        const data = studentSnapshot.docs[0].data();
-                        userDoc = { id: studentSnapshot.docs[0].id, ...data };
-                    }
-                }
-
                 setUser(currentUser);
                 setUserData(userDoc);
-            } else {
+            } else if (!user) {
+                // Only clear if not using Firestore-only auth
                 setUser(null);
                 setUserData(null);
             }
