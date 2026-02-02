@@ -48,11 +48,11 @@ const AdminLayout = ({ children }) => {
                         className="fixed md:relative z-40 w-72 h-screen bg-slate-900/50 backdrop-blur-xl border-r border-white/10 p-6 flex flex-col"
                     >
                         <div className="flex items-center gap-3 mb-10 px-2">
-                            <div className="w-10 h-10 bg-indigo-600 rounded-xl flex items-center justify-center">
-                                <School className="text-white w-6 h-6" />
+                            <div className="w-12 h-12 bg-slate-800 rounded-xl flex items-center justify-center overflow-hidden border border-white/10">
+                                <img src="/campusnet-logo.jpg" alt="Logo" className="w-full h-full object-cover" />
                             </div>
                             <div>
-                                <h1 className="text-white font-bold leading-none">Poly Network</h1>
+                                <h1 className="text-white font-bold leading-none">CampusNet</h1>
                                 <span className="text-[10px] text-indigo-400 font-bold uppercase tracking-widest mt-1 block">Admin Console</span>
                             </div>
                         </div>
@@ -65,8 +65,8 @@ const AdminLayout = ({ children }) => {
                                         key={item.name}
                                         to={item.path}
                                         className={`flex items-center gap-4 px-4 py-3.5 rounded-2xl transition-all group ${isActive
-                                                ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/20'
-                                                : 'text-slate-400 hover:bg-white/5 hover:text-white'
+                                            ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/20'
+                                            : 'text-slate-400 hover:bg-white/5 hover:text-white'
                                             }`}
                                     >
                                         <item.icon className={`w-5 h-5 ${isActive ? 'text-white' : 'group-hover:text-indigo-400'} transition-colors`} />

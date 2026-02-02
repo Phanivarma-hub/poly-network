@@ -1,4 +1,4 @@
-# POLY NETWORK
+# CAMPUSNET
 ## Multi-College Academic Platform
 ### Software Project Management & System Design Document (Consolidated)
 

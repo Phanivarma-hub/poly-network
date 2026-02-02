@@ -92,27 +92,18 @@ export function AuthProvider({ children }) {
             throw new Error('User not found. Check your User ID and College Code.');
         }
 
-        // 3. Authenticate
-        if (requiresFirebaseAuth && userEmail) {
-            // Admin uses Firebase Auth
-            await signInWithEmailAndPassword(auth, userEmail, password);
-        } else {
-            // Teachers and Students use Firestore password verification
-            if (foundUserDoc.password !== password) {
-                throw new Error('Invalid password.');
-            }
-            // Set user state directly for non-Firebase auth
-            setUser({ uid: foundUserDoc.id, email: foundUserDoc.email || null });
-            setUserData({ ...foundUserDoc, role: userRole });
-        }
+        // 3. Sign in with Firebase Auth using the resolved email
+        await signInWithEmailAndPassword(auth, userEmail, password);
 
-        return { userDoc: foundUserDoc, role: userRole };
+        return { userDoc, userRole };
     }
 
     // Standard Firebase Auth login (for direct email login)
     async function loginWithEmail(email, password) {
         return signInWithEmailAndPassword(auth, email, password);
     }
+
+
 
     // Create new user with Firebase Auth
     async function register(email, password) {

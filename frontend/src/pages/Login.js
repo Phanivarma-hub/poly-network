@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate, Link } from 'react-router-dom';
-import { GraduationCap, Shield, User, Users, Lock, ArrowRight, ArrowLeft, Loader2 } from 'lucide-react';
+import { GraduationCap, Shield, User, Users, Lock, ArrowRight, ArrowLeft, Loader2, BookOpen } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 import '../styles/styles.css';
 
 const Login = () => {
@@ -21,36 +22,43 @@ const Login = () => {
             id: 'admin',
             label: 'Admin',
             icon: Shield,
-            description: 'College administrators',
-            color: '#6366f1',
+            description: 'Institue Management',
+            color: 'linear-gradient(135deg, #6366f1 0%, #4338ca 100%)',
+            bgLight: 'rgba(99, 102, 241, 0.1)',
             hasRegister: true,
             registerPath: '/register-college',
             registerLabel: 'Register College'
         },
         {
-            id: 'teacher',
-            label: 'Teacher',
-            icon: Users,
-            description: 'Faculty members',
-            color: '#8b5cf6',
-            hasRegister: false
-        },
-        {
             id: 'student',
             label: 'Student',
             icon: GraduationCap,
-            description: 'Students & learners',
-            color: '#22c55e',
+            description: 'Learning Resources',
+            color: 'linear-gradient(135deg, #22c55e 0%, #15803d 100%)',
+            bgLight: 'rgba(34, 197, 94, 0.1)',
             hasRegister: true,
             registerPath: '/register-student',
-            registerLabel: 'New Student Registration'
+            registerLabel: 'New Student'
+        },
+        {
+            id: 'teacher',
+            label: 'Teacher',
+            icon: Users,
+            description: 'Academic Faculty',
+            color: 'linear-gradient(135deg, #8b5cf6 0%, #6d28d9 100%)',
+            bgLight: 'rgba(139, 92, 246, 0.1)',
+            hasRegister: false
         }
     ];
+
+
 
     const handleSubmit = async (e) => {
         e.preventDefault();
         setError('');
         setLoading(true);
+
+
 
         try {
             const { role } = await login(
@@ -59,7 +67,6 @@ const Login = () => {
                 formData.password
             );
 
-            // Verify role matches selection
             if (role !== selectedRole) {
                 setError(`Invalid credentials. This is not a ${selectedRole} account.`);
                 setLoading(false);
@@ -83,338 +90,567 @@ const Login = () => {
     const currentRole = roles.find(r => r.id === selectedRole);
 
     return (
-        <div className="login-container">
-            <div className="login-card">
-                {/* Logo */}
-                <div className="login-header">
-                    <div className="login-logo">
-                        <GraduationCap size={32} />
-                    </div>
-                    <h1>Poly Network</h1>
-                    <p>Multi-College Academic Platform</p>
-                </div>
+        <div className="modern-login-container">
+            {/* Background Decorative Elements */}
+            <div className="bg-dots"></div>
+            <div className="bg-circle circle-1"></div>
+            <div className="bg-circle circle-2"></div>
 
-                {/* Role Selection */}
-                {!selectedRole ? (
-                    <div className="role-selection">
-                        <h2>Select Your Role</h2>
-                        <div className="role-cards">
-                            {roles.map(role => (
-                                <div key={role.id} className="role-card-wrapper">
-                                    <button
-                                        className="role-card"
-                                        onClick={() => setSelectedRole(role.id)}
-                                        style={{ '--role-color': role.color }}
+            <div className={`login-content-wrapper ${selectedRole ? 'form-active' : ''}`}>
+                <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    className="corner-logo"
+                >
+                    <img src="/campusnet-logo.jpg" alt="Logo" />
+                </motion.div>
+
+                <motion.div
+                    initial={{ opacity: 0, y: -20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="login-brand"
+                >
+                    <h1 className="brand-title">Campus<span className="text-brand-blue">Net</span></h1>
+                    <p className="brand-tagline">── CONNECT • LEARN • SUCCEED ──</p>
+                </motion.div>
+
+                <AnimatePresence mode="wait">
+                    {!selectedRole ? (
+                        <motion.div
+                            key="role-selection"
+                            initial={{ opacity: 0, scale: 0.95 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            exit={{ opacity: 0, scale: 0.9 }}
+                            className="modern-role-selection"
+                        >
+                            <h2 className="selection-title">Choose Your Identity</h2>
+                            <div className="modern-role-grid">
+                                {roles.map((role) => (
+                                    <motion.div
+                                        key={role.id}
+                                        whileHover={{ y: -5 }}
+                                        whileTap={{ scale: 0.98 }}
+                                        className="role-card-wrapper"
                                     >
-                                        <div className="role-icon">
-                                            <role.icon size={28} />
-                                        </div>
-                                        <div className="role-info">
-                                            <span className="role-label">{role.label}</span>
-                                            <span className="role-desc">{role.description}</span>
-                                        </div>
-                                        <ArrowRight size={18} className="role-arrow" />
-                                    </button>
-                                    {role.hasRegister && (
-                                        <Link to={role.registerPath} className="register-link">
-                                            {role.registerLabel} →
-                                        </Link>
-                                    )}
-                                </div>
-                            ))}
-                        </div>
-                    </div>
-                ) : (
-                    /* Login Form */
-                    <div className="login-form-container">
-                        <button className="back-btn" onClick={handleBack}>
-                            <ArrowLeft size={16} /> Back
-                        </button>
-
-                        <div className="login-role-badge" style={{ '--role-color': currentRole.color }}>
-                            <currentRole.icon size={18} />
-                            <span>{currentRole.label} Login</span>
-                        </div>
-
-                        {error && (
-                            <div className="alert alert-error">{error}</div>
-                        )}
-
-                        <form onSubmit={handleSubmit}>
-                            <div className="form-group">
-                                <label className="form-label">College Code</label>
-                                <div className="input-icon-wrapper">
-                                    <Shield size={16} className="input-icon" />
-                                    <input
-                                        type="text"
-                                        className="form-input with-icon"
-                                        placeholder="e.g. DEMO"
-                                        required
-                                        value={formData.collegeCode}
-                                        onChange={(e) => setFormData({ ...formData, collegeCode: e.target.value.toUpperCase() })}
-                                    />
-                                </div>
+                                        <button
+                                            className="modern-role-card"
+                                            onClick={() => setSelectedRole(role.id)}
+                                            style={{ '--role-color': role.color, '--role-bg': role.bgLight }}
+                                        >
+                                            <div className="role-icon-box">
+                                                <role.icon size={48} />
+                                            </div>
+                                            <div className="role-meta">
+                                                <span className="role-title">{role.label}</span>
+                                                <span className="role-info">{role.description}</span>
+                                            </div>
+                                        </button>
+                                        {role.hasRegister && (
+                                            <Link to={role.registerPath} className="modern-register-link">
+                                                {role.registerLabel}
+                                            </Link>
+                                        )}
+                                    </motion.div>
+                                ))}
                             </div>
 
-                            <div className="form-group">
-                                <label className="form-label">
-                                    {selectedRole === 'student' ? 'Student PIN' : 'User ID / Email'}
-                                </label>
-                                <div className="input-icon-wrapper">
-                                    <User size={16} className="input-icon" />
-                                    <input
-                                        type="text"
-                                        className="form-input with-icon"
-                                        placeholder={selectedRole === 'student' ? 'Enter your PIN' : 'Enter your ID'}
-                                        required
-                                        value={formData.userId}
-                                        onChange={(e) => setFormData({ ...formData, userId: e.target.value })}
-                                    />
-                                </div>
-                            </div>
 
-                            <div className="form-group">
-                                <label className="form-label">Password</label>
-                                <div className="input-icon-wrapper">
-                                    <Lock size={16} className="input-icon" />
-                                    <input
-                                        type="password"
-                                        className="form-input with-icon"
-                                        placeholder="Enter your password"
-                                        required
-                                        value={formData.password}
-                                        onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                                    />
-                                </div>
-                            </div>
-
-                            <button type="submit" className="btn btn-primary btn-full" disabled={loading}>
-                                {loading ? (
-                                    <>
-                                        <Loader2 size={18} className="spinner" />
-                                        Signing in...
-                                    </>
-                                ) : (
-                                    <>
-                                        Sign In
-                                        <ArrowRight size={18} />
-                                    </>
-                                )}
+                        </motion.div>
+                    ) : (
+                        <motion.div
+                            key="login-form"
+                            initial={{ opacity: 0, x: 50 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            exit={{ opacity: 0, x: -50 }}
+                            className="modern-login-card"
+                        >
+                            <button className="modern-back-btn" onClick={handleBack}>
+                                <ArrowLeft size={18} />
+                                <span>Change Role</span>
                             </button>
-                        </form>
 
-                        {currentRole.hasRegister && (
-                            <div className="login-footer">
-                                <Link to={currentRole.registerPath}>{currentRole.registerLabel}</Link>
+                            <div className="login-role-header" style={{ '--role-theme': currentRole.color }}>
+                                <div className="role-badge-icon">
+                                    <currentRole.icon size={24} />
+                                </div>
+                                <div className="role-badge-text">
+                                    <h3>{currentRole.label} Entrance</h3>
+                                    <p>Please provide your credentials to continue</p>
+                                </div>
                             </div>
-                        )}
-                    </div>
-                )}
+
+                            {error && (
+                                <motion.div
+                                    initial={{ opacity: 0, height: 0 }}
+                                    animate={{ opacity: 1, height: 'auto' }}
+                                    className="modern-alert alert-error"
+                                >
+                                    {error}
+                                </motion.div>
+                            )}
+
+                            <form onSubmit={handleSubmit} className="modern-form">
+                                <div className="modern-form-group">
+                                    <label>College Code</label>
+                                    <div className="modern-input-wrapper">
+                                        <Shield size={18} className="input-icon" />
+                                        <input
+                                            type="text"
+                                            placeholder="e.g. PIT01"
+                                            required
+                                            value={formData.collegeCode}
+                                            onChange={(e) => setFormData({ ...formData, collegeCode: e.target.value.toUpperCase() })}
+                                        />
+                                    </div>
+                                </div>
+
+                                <div className="modern-form-group">
+                                    <label>{selectedRole === 'student' ? 'Student ID / PIN' : 'User ID / Email'}</label>
+                                    <div className="modern-input-wrapper">
+                                        <User size={18} className="input-icon" />
+                                        <input
+                                            type="text"
+                                            placeholder={selectedRole === 'student' ? 'Enter PIN' : 'Enter ID'}
+                                            required
+                                            value={formData.userId}
+                                            onChange={(e) => setFormData({ ...formData, userId: e.target.value })}
+                                        />
+                                    </div>
+                                </div>
+
+                                <div className="modern-form-group">
+                                    <label>Access Password</label>
+                                    <div className="modern-input-wrapper">
+                                        <Lock size={18} className="input-icon" />
+                                        <input
+                                            type="password"
+                                            placeholder="••••••••"
+                                            required
+                                            value={formData.password}
+                                            onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                                        />
+                                    </div>
+                                </div>
+
+                                <button type="submit" className="modern-btn-submit" disabled={loading} style={{ background: currentRole.color }}>
+                                    {loading ? (
+                                        <Loader2 size={20} className="animate-spin" />
+                                    ) : (
+                                        <>
+                                            Authorize Access
+                                            <ArrowRight size={20} />
+                                        </>
+                                    )}
+                                </button>
+                            </form>
+                        </motion.div>
+                    )}
+                </AnimatePresence>
             </div>
 
             <style>{`
-                .login-container {
+                .modern-login-container {
                     min-height: 100vh;
+                    width: 100vw;
                     display: flex;
                     align-items: center;
                     justify-content: center;
+                    background-color: #020617;
+                    color: #f8fafc;
+                    font-family: 'Inter', sans-serif;
+                    position: relative;
+                    overflow: hidden;
                     padding: 2rem;
-                    background: linear-gradient(135deg, var(--bg-primary) 0%, #1a1a2e 100%);
                 }
 
-                .login-card {
+                .bg-dots {
+                    position: absolute;
+                    inset: 0;
+                    background-image: radial-gradient(#1e293b 1px, transparent 1px);
+                    background-size: 32px 32px;
+                    opacity: 0.3;
+                    z-index: 0;
+                }
+
+                .bg-circle {
+                    position: absolute;
+                    border-radius: 50%;
+                    filter: blur(120px);
+                    z-index: 0;
+                }
+
+                .circle-1 {
+                    width: 500px;
+                    height: 500px;
+                    background: rgba(99, 102, 241, 0.15);
+                    top: -100px;
+                    right: -100px;
+                }
+
+                .circle-2 {
+                    width: 400px;
+                    height: 400px;
+                    background: rgba(139, 92, 246, 0.1);
+                    bottom: -100px;
+                    left: -100px;
+                }
+
+                .login-content-wrapper {
                     width: 100%;
-                    max-width: 420px;
-                    background-color: var(--bg-secondary);
-                    border: 1px solid var(--border-color);
-                    border-radius: var(--border-radius-lg);
-                    padding: 2.5rem;
+                    max-width: 1000px;
+                    z-index: 10;
+                    display: flex;
+                    flex-direction: column;
+                    align-items: center;
+                    gap: 3rem;
+                    transition: all 0.5s ease;
                 }
 
-                .login-header {
-                    text-align: center;
+                .login-content-wrapper.form-active {
+                    max-width: 500px;
+                }
+
+                .corner-logo {
+                    position: absolute;
+                    top: 2rem;
+                    left: 2rem;
+                    width: 60px;
+                    height: 60px;
+                    border-radius: 12px;
+                    overflow: hidden;
+                    box-shadow: 0 8px 20px -5px rgba(0, 0, 0, 0.4);
+                    border: 1px solid rgba(255, 255, 255, 0.1);
+                    z-index: 100;
+                }
+
+                .corner-logo img {
+                    width: 100%;
+                    height: 100%;
+                    object-fit: cover;
+                }
+
+                .login-brand {
+                    display: flex;
+                    flex-direction: column;
+                    align-items: center;
                     margin-bottom: 2rem;
                 }
 
-                .login-logo {
-                    width: 60px;
-                    height: 60px;
-                    background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
-                    border-radius: 16px;
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                    margin: 0 auto 1rem;
+                .brand-title {
+                    font-family: 'Outfit', sans-serif;
+                    font-size: 3.5rem !important;
+                    font-weight: 800;
+                    letter-spacing: -0.02em;
+                    margin-bottom: 0 !important;
                     color: white;
                 }
 
-                .login-header h1 {
-                    font-size: 1.5rem;
-                    margin-bottom: 0.25rem;
+                .text-brand-blue {
+                    color: #3b82f6;
                 }
 
-                .login-header p {
-                    font-size: 0.875rem;
-                    color: var(--text-muted);
-                }
-
-                .role-selection h2 {
-                    font-size: 1rem;
-                    text-align: center;
-                    color: var(--text-muted);
-                    margin-bottom: 1.25rem;
-                }
-
-                .role-cards {
-                    display: flex;
-                    flex-direction: column;
-                    gap: 0.75rem;
-                }
-
-                .role-card-wrapper {
-                    display: flex;
-                    flex-direction: column;
-                    gap: 0.25rem;
-                }
-
-                .role-card {
-                    width: 100%;
+                .brand-tagline {
+                    color: #3b82f6;
+                    font-size: 0.8rem;
+                    font-weight: 600;
+                    letter-spacing: 0.2em;
+                    margin-top: 0.5rem;
+                    opacity: 0.8;
                     display: flex;
                     align-items: center;
                     gap: 1rem;
-                    padding: 1rem 1.25rem;
-                    background-color: var(--bg-primary);
-                    border: 1px solid var(--border-color);
-                    border-radius: var(--border-radius);
+                }
+
+                .modern-role-selection {
+                    width: 100%;
+                }
+
+                .selection-title {
+                    font-size: 0.875rem;
+                    text-transform: uppercase;
+                    letter-spacing: 0.2rem;
+                    color: #64748b;
+                    text-align: center;
+                    margin-bottom: 2rem;
+                    font-weight: 700;
+                }
+
+                .modern-role-grid {
+                    display: grid;
+                    grid-template-columns: repeat(3, 1fr);
+                    gap: 1.5rem;
+                    width: 100%;
+                }
+
+                .modern-role-card-wrapper {
+                    display: flex;
+                    flex-direction: column;
+                    align-items: center;
+                    gap: 1rem;
+                }
+
+                .modern-role-card {
+                    width: 100%;
+                    background: rgba(15, 23, 42, 0.6);
+                    backdrop-filter: blur(20px);
+                    border: 1px solid rgba(255, 255, 255, 0.05);
+                    border-radius: 32px;
+                    padding: 3rem 1.5rem;
                     cursor: pointer;
-                    transition: all 0.2s;
-                    text-align: left;
+                    position: relative;
+                    overflow: hidden;
+                    transition: all 0.3s ease;
+                    display: flex;
+                    flex-direction: column;
+                    align-items: center;
+                    justify-content: center;
+                    gap: 1.5rem;
                 }
 
-                .role-card:hover {
-                    border-color: var(--role-color);
-                    background-color: rgba(99, 102, 241, 0.05);
+                .modern-role-card:hover {
+                    border-color: rgba(255, 255, 255, 0.2);
+                    background: rgba(30, 41, 59, 0.7);
+                    box-shadow: 0 20px 40px -10px rgba(0, 0, 0, 0.5);
                 }
 
-                .role-icon {
-                    width: 48px;
-                    height: 48px;
-                    background-color: rgba(99, 102, 241, 0.1);
-                    border-radius: var(--border-radius);
+                .card-inner {
+                    display: flex;
+                    flex-direction: column;
+                    align-items: center;
+                    gap: 1.5rem;
+                }
+
+                .role-icon-box {
+                    width: 100px;
+                    height: 100px;
+                    background: var(--role-theme);
+                    color: #fff;
+                    border-radius: 28px;
                     display: flex;
                     align-items: center;
                     justify-content: center;
-                    color: var(--role-color);
+                    box-shadow: 0 12px 24px -6px rgba(0, 0, 0, 0.4);
+                    transition: transform 0.3s ease;
+                }
+
+                .modern-role-card:hover .role-icon-box {
+                    transform: scale(1.1);
+                }
+
+                .role-meta {
+                    display: flex;
+                    flex-direction: column;
+                    align-items: center;
+                    gap: 0.25rem;
+                }
+
+                .role-title {
+                    font-size: 1.5rem;
+                    font-weight: 700;
+                    color: #fff;
+                    font-family: 'Outfit', sans-serif;
                 }
 
                 .role-info {
-                    flex: 1;
-                    display: flex;
-                    flex-direction: column;
+                    font-size: 0.875rem;
+                    color: #94a3b8;
                 }
 
-                .role-label {
-                    font-weight: 600;
-                    color: var(--text-primary);
+                .role-action-indicator {
+                    color: #64748b;
+                    transition: all 0.3s ease;
                 }
 
-                .role-desc {
+                .modern-role-card:hover .role-action-indicator {
+                    color: #fff;
+                    transform: translateX(5px);
+                }
+
+                .modern-register-link {
                     font-size: 0.75rem;
-                    color: var(--text-muted);
-                }
-
-                .role-arrow {
-                    color: var(--text-muted);
-                    transition: transform 0.2s;
-                }
-
-                .role-card:hover .role-arrow {
-                    transform: translateX(4px);
-                    color: var(--role-color);
-                }
-
-                .register-link {
-                    font-size: 0.75rem;
-                    color: var(--text-muted);
+                    color: #64748b;
                     text-decoration: none;
-                    padding-left: 4rem;
-                    transition: color 0.15s;
+                    background: rgba(30, 41, 59, 0.5);
+                    padding: 0.4rem 1rem;
+                    border-radius: 99px;
+                    transition: all 0.2s;
                 }
 
-                .register-link:hover {
-                    color: var(--accent-primary);
+                .modern-register-link:hover {
+                    color: #fff;
+                    background: #334155;
                 }
 
-                .back-btn {
-                    display: inline-flex;
+                .modern-login-card {
+                    width: 100%;
+                    background: rgba(15, 23, 42, 0.6);
+                    backdrop-filter: blur(20px);
+                    border: 1px solid rgba(255, 255, 255, 0.05);
+                    border-radius: 40px;
+                    padding: 3rem;
+                    box-shadow: 0 30px 60px -12px rgba(0, 0, 0, 0.5);
+                }
+
+                .modern-back-btn {
+                    display: flex;
                     align-items: center;
                     gap: 0.5rem;
                     background: none;
                     border: none;
-                    color: var(--text-muted);
+                    color: #64748b;
                     font-size: 0.875rem;
                     cursor: pointer;
-                    margin-bottom: 1rem;
+                    margin-bottom: 2rem;
                     padding: 0;
+                    transition: color 0.2s;
                 }
 
-                .back-btn:hover {
-                    color: var(--text-primary);
+                .modern-back-btn:hover {
+                    color: #fff;
                 }
 
-                .login-role-badge {
-                    display: inline-flex;
+                .login-role-header {
+                    display: flex;
                     align-items: center;
-                    gap: 0.5rem;
-                    background-color: rgba(99, 102, 241, 0.1);
-                    color: var(--role-color);
-                    padding: 0.5rem 1rem;
-                    border-radius: var(--border-radius);
-                    font-size: 0.875rem;
-                    font-weight: 600;
-                    margin-bottom: 1.5rem;
+                    gap: 1.25rem;
+                    margin-bottom: 2.5rem;
                 }
 
-                .input-icon-wrapper {
+                .role-badge-icon {
+                    width: 56px;
+                    height: 56px;
+                    background: var(--role-theme);
+                    border-radius: 16px;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    color: white;
+                }
+
+                .role-badge-text h3 {
+                    font-size: 1.25rem;
+                    margin-bottom: 0.2rem;
+                    font-family: 'Outfit', sans-serif;
+                }
+
+                .role-badge-text p {
+                    font-size: 0.875rem;
+                    color: #64748b;
+                }
+
+                .modern-form {
+                    display: flex;
+                    flex-direction: column;
+                    gap: 1.5rem;
+                }
+
+                .modern-form-group {
+                    display: flex;
+                    flex-direction: column;
+                    gap: 0.5rem;
+                }
+
+                .modern-form-group label {
+                    font-size: 0.75rem;
+                    font-weight: 600;
+                    text-transform: uppercase;
+                    letter-spacing: 0.05em;
+                    color: #64748b;
+                    margin-left: 0.5rem;
+                }
+
+                .modern-input-wrapper {
                     position: relative;
                 }
 
-                .input-icon {
+                .modern-input-wrapper .input-icon {
                     position: absolute;
-                    left: 0.875rem;
+                    left: 1.25rem;
                     top: 50%;
                     transform: translateY(-50%);
-                    color: var(--text-muted);
+                    color: #475569;
+                    transition: color 0.2s;
                 }
 
-                .form-input.with-icon {
-                    padding-left: 2.5rem;
-                }
-
-                .btn-full {
+                .modern-input-wrapper input {
                     width: 100%;
-                    margin-top: 0.5rem;
+                    background: rgba(2, 6, 23, 0.4);
+                    border: 1px solid #1e293b;
+                    border-radius: 18px;
+                    padding: 1.125rem 1rem 1.125rem 3.5rem;
+                    color: white;
+                    font-size: 1rem;
+                    outline: none;
+                    transition: all 0.2s;
                 }
 
-                .login-footer {
-                    text-align: center;
-                    margin-top: 1.5rem;
-                    padding-top: 1.5rem;
-                    border-top: 1px solid var(--border-color);
+                .modern-input-wrapper input:focus {
+                    border-color: #6366f1;
+                    background: rgba(2, 6, 23, 0.6);
+                    box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.1);
                 }
 
-                .login-footer a {
-                    color: var(--accent-primary);
-                    text-decoration: none;
+                .modern-input-wrapper input:focus + .input-icon {
+                    color: #6366f1;
+                }
+
+                .modern-btn-submit {
+                    margin-top: 1rem;
+                    padding: 1.125rem;
+                    border-radius: 18px;
+                    border: none;
+                    color: white;
+                    font-weight: 700;
+                    font-size: 1rem;
+                    cursor: pointer;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    gap: 0.75rem;
+                    transition: all 0.3s;
+                    box-shadow: 0 10px 20px -5px rgba(0, 0, 0, 0.3);
+                }
+
+                .modern-btn-submit:hover {
+                    transform: translateY(-2px);
+                    box-shadow: 0 15px 30px -10px rgba(0, 0, 0, 0.4);
+                    filter: brightness(1.1);
+                }
+
+                .modern-alert {
+                    padding: 1rem;
+                    border-radius: 14px;
                     font-size: 0.875rem;
+                    margin-bottom: 1.5rem;
+                    text-align: center;
+                    border: 1px solid rgba(239, 68, 68, 0.2);
+                    background: rgba(239, 68, 68, 0.1);
+                    color: #fca5a5;
                 }
 
-                .login-footer a:hover {
-                    text-decoration: underline;
+                @media (max-width: 900px) {
+                    .modern-role-grid {
+                        grid-template-columns: 1fr;
+                        max-width: 400px;
+                    }
+                    
+                    .modern-role-card {
+                        padding: 1.5rem;
+                    }
+
+                    .login-brand h1 {
+                        font-size: 2rem;
+                    }
+
+                    .login-content-wrapper {
+                        gap: 2rem;
+                    }
                 }
+
             `}</style>
         </div>
     );
 };
 
 export default Login;
+
