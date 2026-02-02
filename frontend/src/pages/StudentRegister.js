@@ -2,8 +2,10 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { db } from '../firebase';
 import { collection, query, where, getDocs, addDoc } from 'firebase/firestore';
-import { GraduationCap, ArrowLeft, User, Lock, Phone, Loader2, CheckCircle } from 'lucide-react';
+import { GraduationCap, ArrowLeft, User, Lock, Phone, Loader2, CheckCircle, ArrowRight, Shield, BookOpen } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 import '../styles/styles.css';
+import '../styles/auth.css';
 
 const StudentRegister = () => {
     const navigate = useNavigate();
@@ -24,6 +26,8 @@ const StudentRegister = () => {
         confirmPassword: '',
         parent_phone: ''
     });
+
+    const selectedClass = classes.find(c => c.id === formData.class_id);
 
     // Verify college code
     const handleVerifyCollege = async (e) => {
@@ -63,33 +67,6 @@ const StudentRegister = () => {
         }
     };
 
-    // Generate PIN based on class rules
-    const generatePIN = async (classDoc) => {
-        const pinValidation = classDoc.pin_validation;
-
-        if (pinValidation?.type === 'range' && pinValidation?.start && pinValidation?.end) {
-            // Get existing students in this class
-            const studentsQuery = query(
-                collection(db, 'students'),
-                where('class_id', '==', classDoc.id)
-            );
-            const studentsSnapshot = await getDocs(studentsQuery);
-            const existingPins = studentsSnapshot.docs.map(d => parseInt(d.data().pin) || 0);
-
-            // Find next available PIN in range
-            for (let pin = parseInt(pinValidation.start); pin <= parseInt(pinValidation.end); pin++) {
-                if (!existingPins.includes(pin)) {
-                    return pin.toString();
-                }
-            }
-            throw new Error('No available PINs in this class range.');
-        } else {
-            // Generate random 6-digit PIN
-            const pin = Math.floor(100000 + Math.random() * 900000).toString();
-            return pin;
-        }
-    };
-
     // Submit registration
     const handleSubmit = async (e) => {
         e.preventDefault();
@@ -108,13 +85,13 @@ const StudentRegister = () => {
         setLoading(true);
 
         try {
-            // Validate PIN against class rules
-            const pinRule = selectedClass.pin_validation_rule;
+            // Validate PIN against class rules if any
+            const pinRule = selectedClass?.pin_validation_rule;
             if (pinRule) {
                 if (pinRule.type === 'regex') {
                     const regex = new RegExp(pinRule.pattern);
                     if (!regex.test(formData.pin)) {
-                        setError(`PIN must match the class format: ${pinRule.pattern}`);
+                        setError(`PIN must match the class format.`);
                         setLoading(false);
                         return;
                     }
@@ -137,7 +114,7 @@ const StudentRegister = () => {
             );
             const existingSnapshot = await getDocs(existingQuery);
             if (!existingSnapshot.empty) {
-                setError('This PIN/Roll Number is already registered in your class.');
+                setError('This PIN is already registered in your class.');
                 setLoading(false);
                 return;
             }
@@ -153,10 +130,10 @@ const StudentRegister = () => {
                 created_at: new Date()
             });
 
-            setSuccess(true);
+            setGeneratedPin(formData.pin);
             setSuccess(true);
         } catch (err) {
-            setError(err.message || 'Error creating account. Please try again.');
+            setError(err.message || 'Error creating account.');
         } finally {
             setLoading(false);
         }
@@ -164,257 +141,246 @@ const StudentRegister = () => {
 
     if (success) {
         return (
-            <div className="login-container">
-                <div className="login-card" style={{ textAlign: 'center' }}>
-                    <div style={{
-                        width: '64px',
-                        height: '64px',
-                        backgroundColor: 'rgba(34, 197, 94, 0.15)',
-                        borderRadius: '50%',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        margin: '0 auto 1.5rem'
-                    }}>
-                        <CheckCircle size={32} style={{ color: 'var(--accent-success)' }} />
-                    </div>
-                    <h2>Registration Successful!</h2>
-                    <p style={{ color: 'var(--text-muted)', marginBottom: '1.5rem' }}>
-                        Your account has been created. Please save your PIN.
-                    </p>
-                    <div style={{
-                        backgroundColor: 'var(--bg-primary)',
-                        padding: '1.5rem',
-                        borderRadius: 'var(--border-radius)',
-                        marginBottom: '1.5rem'
-                    }}>
-                        <div style={{ fontSize: '0.875rem', color: 'var(--text-muted)', marginBottom: '0.5rem' }}>
-                            Your Student PIN
+            <div className="modern-auth-container">
+                <div className="bg-dots"></div>
+                <div className="bg-circle circle-1"></div>
+                <div className="bg-circle circle-2"></div>
+
+                <div className="auth-content-wrapper form-active">
+                    <motion.div
+                        initial={{ opacity: 0, scale: 0.9 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        className="modern-auth-card text-center"
+                    >
+                        <div className="role-badge-icon mx-auto mb-6" style={{ background: 'var(--accent-success)', margin: '0 auto 1.5rem' }}>
+                            <CheckCircle size={32} />
                         </div>
+                        <h2 className="brand-title" style={{ fontSize: '2rem !important' }}>Success!</h2>
+                        <p className="role-badge-text p-0 mb-6">Your student account has been created.</p>
+
                         <div style={{
-                            fontSize: '2rem',
-                            fontWeight: 700,
-                            color: 'var(--accent-primary)',
-                            letterSpacing: '0.2em'
+                            background: 'rgba(2, 6, 23, 0.4)',
+                            padding: '1.5rem',
+                            borderRadius: '18px',
+                            border: '1px solid #1e293b',
+                            marginBottom: '2rem'
                         }}>
-                            {generatedPin}
+                            <span style={{ fontSize: '0.75rem', color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.1em' }}>Your Login PIN</span>
+                            <div style={{ fontSize: '2.5rem', fontWeight: 800, color: '#22c55e', letterSpacing: '0.2em', marginTop: '0.5rem' }}>
+                                {generatedPin}
+                            </div>
                         </div>
-                    </div>
-                    <p style={{ fontSize: '0.8125rem', color: 'var(--text-muted)', marginBottom: '1.5rem' }}>
-                        ⚠️ Save this PIN! You'll need it to login.
-                    </p>
-                    <button className="btn btn-primary btn-full" onClick={() => navigate('/login')}>
-                        Go to Login
-                    </button>
+
+                        <p style={{ fontSize: '0.875rem', color: '#64748b', marginBottom: '2rem' }}>
+                            ⚠️ Please save this PIN. You will need it to sign in to your student portal.
+                        </p>
+
+                        <button className="modern-btn-submit w-full" onClick={() => navigate('/login')} style={{ '--btn-theme': 'linear-gradient(135deg, #22c55e 0%, #15803d 100%)' }}>
+                            Continue to Login
+                            <ArrowRight size={20} />
+                        </button>
+                    </motion.div>
                 </div>
             </div>
         );
     }
 
     return (
-        <div className="login-container">
-            <div className="login-card">
-                <Link to="/login" className="back-btn" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', color: 'var(--text-muted)', textDecoration: 'none', marginBottom: '1rem' }}>
-                    <ArrowLeft size={16} /> Back to Login
-                </Link>
+        <div className="modern-auth-container">
+            <div className="bg-dots"></div>
+            <div className="bg-circle circle-1"></div>
+            <div className="bg-circle circle-2"></div>
 
-                <div className="login-header">
-                    <div className="login-logo" style={{ background: 'linear-gradient(135deg, #22c55e, #16a34a)' }}>
-                        <GraduationCap size={32} />
+            <div className="auth-content-wrapper form-active">
+                <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    className="corner-logo"
+                >
+                    <img src="/campusnet-logo.jpg" alt="Logo" />
+                </motion.div>
+
+                <motion.div
+                    initial={{ opacity: 0, y: -20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="auth-brand"
+                >
+                    <h1 className="brand-title">Campus<span className="text-brand-blue">Net</span></h1>
+                    <p className="brand-tagline">── CONNECT • LEARN • SUCCEED ──</p>
+                </motion.div>
+
+                <motion.div
+                    initial={{ opacity: 0, scale: 0.95 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    className="modern-auth-card"
+                >
+                    <button className="modern-back-btn" onClick={() => step === 2 ? setStep(1) : navigate('/login')}>
+                        <ArrowLeft size={18} />
+                        <span>{step === 2 ? 'Back to Step 1' : 'Back to Login'}</span>
+                    </button>
+
+                    <div className="auth-role-header" style={{ '--role-theme': 'linear-gradient(135deg, #22c55e 0%, #15803d 100%)' }}>
+                        <div className="role-badge-icon">
+                            <GraduationCap size={24} />
+                        </div>
+                        <div className="role-badge-text">
+                            <h3>Student Registration</h3>
+                            <p>{step === 1 ? 'Verify your college code' : `Join ${college?.name}`}</p>
+                        </div>
                     </div>
-                    <h1>Student Registration</h1>
-                    <p>Create your student account</p>
-                </div>
 
-                {/* Progress indicator */}
-                <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1.5rem' }}>
-                    <div style={{
-                        flex: 1,
-                        height: '4px',
-                        borderRadius: '2px',
-                        backgroundColor: step >= 1 ? 'var(--accent-success)' : 'var(--border-color)'
-                    }}></div>
-                    <div style={{
-                        flex: 1,
-                        height: '4px',
-                        borderRadius: '2px',
-                        backgroundColor: step >= 2 ? 'var(--accent-success)' : 'var(--border-color)'
-                    }}></div>
-                </div>
+                    {/* Progress Bar */}
+                    <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '2rem' }}>
+                        <div style={{ flex: 1, height: '4px', borderRadius: '2px', background: step >= 1 ? '#22c55e' : '#1e293b' }}></div>
+                        <div style={{ flex: 1, height: '4px', borderRadius: '2px', background: step >= 2 ? '#22c55e' : '#1e293b' }}></div>
+                    </div>
 
-                {error && <div className="alert alert-error">{error}</div>}
+                    {error && (
+                        <motion.div
+                            initial={{ opacity: 0, height: 0 }}
+                            animate={{ opacity: 1, height: 'auto' }}
+                            className="modern-alert"
+                        >
+                            {error}
+                        </motion.div>
+                    )}
 
-                {step === 1 && (
-                    <form onSubmit={handleVerifyCollege}>
-                        <div className="form-group">
-                            <label className="form-label">College Code</label>
-                            <input
-                                type="text"
-                                className="form-input"
-                                placeholder="Enter your college code (e.g. DEMO)"
-                                required
-                                value={formData.collegeCode}
-                                onChange={(e) => setFormData({ ...formData, collegeCode: e.target.value.toUpperCase() })}
-                            />
-                            <small style={{ color: 'var(--text-muted)', fontSize: '0.75rem' }}>
-                                Get this code from your college administrator
-                            </small>
-                        </div>
-                        <button type="submit" className="btn btn-primary btn-full" disabled={loading}>
-                            {loading ? <><Loader2 size={18} className="spinner" /> Verifying...</> : 'Continue'}
-                        </button>
-                    </form>
-                )}
-
-                {step === 2 && (
-                    <form onSubmit={handleSubmit}>
-                        <div style={{ marginBottom: '1rem', padding: '0.75rem', backgroundColor: 'rgba(34, 197, 94, 0.1)', borderRadius: 'var(--border-radius)' }}>
-                            <div style={{ fontSize: '0.75rem', color: 'var(--accent-success)' }}>College</div>
-                            <div style={{ fontWeight: 600 }}>{college?.name}</div>
-                        </div>
-
-                        <div className="form-group">
-                            <label className="form-label">Select Class</label>
-                            <select
-                                className="form-select"
-                                required
-                                value={formData.class_id}
-                                onChange={(e) => setFormData({ ...formData, class_id: e.target.value })}
+                    <AnimatePresence mode="wait">
+                        {step === 1 ? (
+                            <motion.form
+                                key="step1"
+                                initial={{ opacity: 0, x: 20 }}
+                                animate={{ opacity: 1, x: 0 }}
+                                exit={{ opacity: 0, x: -20 }}
+                                onSubmit={handleVerifyCollege}
+                                className="modern-form"
                             >
-                                <option value="">Choose your class</option>
-                                {classes.map(cls => (
-                                    <option key={cls.id} value={cls.id}>
-                                        {cls.branch} - Section {cls.section} (Year {cls.year})
-                                    </option>
-                                ))}
-                            </select>
-                        </div>
+                                <div className="modern-form-group">
+                                    <label>College Code</label>
+                                    <div className="modern-input-wrapper">
+                                        <Shield size={18} className="input-icon" />
+                                        <input
+                                            type="text"
+                                            placeholder="Enter Code (e.g. DEMO)"
+                                            required
+                                            value={formData.collegeCode}
+                                            onChange={(e) => setFormData({ ...formData, collegeCode: e.target.value.toUpperCase() })}
+                                        />
+                                    </div>
+                                    <p style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '0.5rem', marginLeft: '0.5rem' }}>
+                                        Contact your administration if you don't have a code.
+                                    </p>
+                                </div>
+                                <button type="submit" className="modern-btn-submit" disabled={loading} style={{ '--btn-theme': 'linear-gradient(135deg, #22c55e 0%, #15803d 100%)' }}>
+                                    {loading ? <Loader2 size={20} className="animate-spin" /> : <>Continue Registration <ArrowRight size={20} /></>}
+                                </button>
+                            </motion.form>
+                        ) : (
+                            <motion.form
+                                key="step2"
+                                initial={{ opacity: 0, x: 20 }}
+                                animate={{ opacity: 1, x: 0 }}
+                                exit={{ opacity: 0, x: -20 }}
+                                onSubmit={handleSubmit}
+                                className="modern-form"
+                            >
+                                <div className="modern-form-group">
+                                    <label>Select Class</label>
+                                    <div className="modern-input-wrapper">
+                                        <BookOpen size={18} className="input-icon" />
+                                        <select
+                                            required
+                                            value={formData.class_id}
+                                            onChange={(e) => setFormData({ ...formData, class_id: e.target.value })}
+                                        >
+                                            <option value="">Choose your class</option>
+                                            {classes.map(cls => (
+                                                <option key={cls.id} value={cls.id}>
+                                                    {cls.branch} - {cls.section} (Year {cls.year})
+                                                </option>
+                                            ))}
+                                        </select>
+                                    </div>
+                                </div>
 
-                        <div className="form-group">
-                            <label className="form-label">Roll Number / PIN</label>
-                            <input
-                                type="text"
-                                className="form-input"
-                                required
-                                placeholder="Enter your official roll number"
-                                value={formData.pin}
-                                onChange={(e) => setFormData({ ...formData, pin: e.target.value })}
-                            />
-                            <small className="form-text" style={{ color: 'var(--text-muted)', fontSize: '0.75rem' }}>
-                                This will be your login ID
-                            </small>
-                        </div>
+                                <div className="modern-form-group">
+                                    <label>Roll Number / PIN</label>
+                                    <div className="modern-input-wrapper">
+                                        <Shield size={18} className="input-icon" />
+                                        <input
+                                            type="text"
+                                            required
+                                            placeholder="Unique Student ID"
+                                            value={formData.pin}
+                                            onChange={(e) => setFormData({ ...formData, pin: e.target.value })}
+                                        />
+                                    </div>
+                                </div>
 
-                        <div className="form-group">
-                            <label className="form-label">Full Name</label>
-                            <input
-                                type="text"
-                                className="form-input"
-                                required
-                                placeholder="Enter your full name"
-                                value={formData.name}
-                                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                            />
-                        </div>
+                                <div className="modern-form-group">
+                                    <label>Full Name</label>
+                                    <div className="modern-input-wrapper">
+                                        <User size={18} className="input-icon" />
+                                        <input
+                                            type="text"
+                                            required
+                                            placeholder="Your name"
+                                            value={formData.name}
+                                            onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                                        />
+                                    </div>
+                                </div>
 
-                        <div className="form-group">
-                            <label className="form-label">Parent Phone (optional)</label>
-                            <input
-                                type="tel"
-                                className="form-input"
-                                placeholder="10-digit phone number"
-                                value={formData.parent_phone}
-                                onChange={(e) => setFormData({ ...formData, parent_phone: e.target.value })}
-                            />
-                        </div>
+                                <div className="modern-form-group">
+                                    <label>Parent Phone (Optional)</label>
+                                    <div className="modern-input-wrapper">
+                                        <Phone size={18} className="input-icon" />
+                                        <input
+                                            type="tel"
+                                            placeholder="Mobile Number"
+                                            value={formData.parent_phone}
+                                            onChange={(e) => setFormData({ ...formData, parent_phone: e.target.value })}
+                                        />
+                                    </div>
+                                </div>
 
-                        <div className="form-row">
-                            <div className="form-group">
-                                <label className="form-label">Password</label>
-                                <input
-                                    type="password"
-                                    className="form-input"
-                                    required
-                                    placeholder="Min 6 characters"
-                                    value={formData.password}
-                                    onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                                />
-                            </div>
-                            <div className="form-group">
-                                <label className="form-label">Confirm Password</label>
-                                <input
-                                    type="password"
-                                    className="form-input"
-                                    required
-                                    placeholder="Confirm password"
-                                    value={formData.confirmPassword}
-                                    onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
-                                />
-                            </div>
-                        </div>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div className="modern-form-group">
+                                        <label>Password</label>
+                                        <div className="modern-input-wrapper">
+                                            <Lock size={18} className="input-icon" />
+                                            <input
+                                                type="password"
+                                                required
+                                                placeholder="••••••••"
+                                                value={formData.password}
+                                                onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                                            />
+                                        </div>
+                                    </div>
+                                    <div className="modern-form-group">
+                                        <label>Confirm</label>
+                                        <div className="modern-input-wrapper">
+                                            <Lock size={18} className="input-icon" />
+                                            <input
+                                                type="password"
+                                                required
+                                                placeholder="••••••••"
+                                                value={formData.confirmPassword}
+                                                onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
+                                            />
+                                        </div>
+                                    </div>
+                                </div>
 
-                        <div style={{ display: 'flex', gap: '0.75rem' }}>
-                            <button type="button" className="btn btn-secondary" onClick={() => setStep(1)}>
-                                Back
-                            </button>
-                            <button type="submit" className="btn btn-primary" style={{ flex: 1 }} disabled={loading}>
-                                {loading ? <><Loader2 size={18} className="spinner" /> Creating...</> : 'Create Account'}
-                            </button>
-                        </div>
-                    </form>
-                )}
+                                <button type="submit" className="modern-btn-submit" disabled={loading} style={{ '--btn-theme': 'linear-gradient(135deg, #22c55e 0%, #15803d 100%)' }}>
+                                    {loading ? <Loader2 size={20} className="animate-spin" /> : <>Create Student Account <ArrowRight size={20} /></>}
+                                </button>
+                            </motion.form>
+                        )}
+                    </AnimatePresence>
+                </motion.div>
             </div>
-
-            <style>{`
-                .login-container {
-                    min-height: 100vh;
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                    padding: 2rem;
-                    background: linear-gradient(135deg, var(--bg-primary) 0%, #1a1a2e 100%);
-                }
-
-                .login-card {
-                    width: 100%;
-                    max-width: 450px;
-                    background-color: var(--bg-secondary);
-                    border: 1px solid var(--border-color);
-                    border-radius: var(--border-radius-lg);
-                    padding: 2rem;
-                }
-
-                .login-header {
-                    text-align: center;
-                    margin-bottom: 1.5rem;
-                }
-
-                .login-logo {
-                    width: 60px;
-                    height: 60px;
-                    background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
-                    border-radius: 16px;
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                    margin: 0 auto 1rem;
-                    color: white;
-                }
-
-                .login-header h1 {
-                    font-size: 1.25rem;
-                    margin-bottom: 0.25rem;
-                }
-
-                .login-header p {
-                    font-size: 0.875rem;
-                    color: var(--text-muted);
-                }
-
-                .btn-full {
-                    width: 100%;
-                }
-            `}</style>
         </div>
     );
 };
