@@ -18,6 +18,7 @@ const StudentRegister = () => {
     const [formData, setFormData] = useState({
         collegeCode: '',
         class_id: '',
+        pin: '',
         name: '',
         password: '',
         confirmPassword: '',
@@ -107,19 +108,44 @@ const StudentRegister = () => {
         setLoading(true);
 
         try {
-            const selectedClass = classes.find(c => c.id === formData.class_id);
-            if (!selectedClass) {
-                setError('Please select a class.');
+            // Validate PIN against class rules
+            const pinRule = selectedClass.pin_validation_rule;
+            if (pinRule) {
+                if (pinRule.type === 'regex') {
+                    const regex = new RegExp(pinRule.pattern);
+                    if (!regex.test(formData.pin)) {
+                        setError(`PIN must match the class format: ${pinRule.pattern}`);
+                        setLoading(false);
+                        return;
+                    }
+                } else if (pinRule.type === 'range') {
+                    const pinNum = parseInt(formData.pin);
+                    if (isNaN(pinNum) || pinNum < pinRule.min || pinNum > pinRule.max) {
+                        setError(`PIN must be between ${pinRule.min} and ${pinRule.max}`);
+                        setLoading(false);
+                        return;
+                    }
+                }
+            }
+
+            // Check if PIN is already taken
+            const existingQuery = query(
+                collection(db, 'students'),
+                where('college_id', '==', college.id),
+                where('class_id', '==', formData.class_id),
+                where('pin', '==', formData.pin)
+            );
+            const existingSnapshot = await getDocs(existingQuery);
+            if (!existingSnapshot.empty) {
+                setError('This PIN/Roll Number is already registered in your class.');
                 setLoading(false);
                 return;
             }
 
-            const pin = await generatePIN(selectedClass);
-
             await addDoc(collection(db, 'students'), {
                 college_id: college.id,
                 class_id: formData.class_id,
-                pin: pin,
+                pin: formData.pin,
                 name: formData.name,
                 password: formData.password,
                 parent_phone: formData.parent_phone,
@@ -127,7 +153,7 @@ const StudentRegister = () => {
                 created_at: new Date()
             });
 
-            setGeneratedPin(pin);
+            setSuccess(true);
             setSuccess(true);
         } catch (err) {
             setError(err.message || 'Error creating account. Please try again.');
@@ -258,10 +284,25 @@ const StudentRegister = () => {
                                 <option value="">Choose your class</option>
                                 {classes.map(cls => (
                                     <option key={cls.id} value={cls.id}>
-                                        {cls.branch} - Section {cls.section}
+                                        {cls.branch} - Section {cls.section} (Year {cls.year})
                                     </option>
                                 ))}
                             </select>
+                        </div>
+
+                        <div className="form-group">
+                            <label className="form-label">Roll Number / PIN</label>
+                            <input
+                                type="text"
+                                className="form-input"
+                                required
+                                placeholder="Enter your official roll number"
+                                value={formData.pin}
+                                onChange={(e) => setFormData({ ...formData, pin: e.target.value })}
+                            />
+                            <small className="form-text" style={{ color: 'var(--text-muted)', fontSize: '0.75rem' }}>
+                                This will be your login ID
+                            </small>
                         </div>
 
                         <div className="form-group">

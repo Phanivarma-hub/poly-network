@@ -8,6 +8,7 @@ const TeacherMaterials = () => {
     const { userData } = useAuth();
     const [materials, setMaterials] = useState([]);
     const [classes, setClasses] = useState([]);
+    const [subjects, setSubjects] = useState([]);
     const [loading, setLoading] = useState(true);
     const [showModal, setShowModal] = useState(false);
     const [editingMaterial, setEditingMaterial] = useState(null);
@@ -40,6 +41,14 @@ const TeacherMaterials = () => {
             );
             const classesSnapshot = await getDocs(classesQuery);
             setClasses(classesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+
+            // Fetch subjects
+            const subjectsQuery = query(
+                collection(db, 'subjects'),
+                where('college_id', '==', userData.college_id)
+            );
+            const subjectsSnapshot = await getDocs(subjectsQuery);
+            setSubjects(subjectsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
         } catch (error) {
             console.error('Error fetching data:', error);
         } finally {
@@ -242,14 +251,17 @@ const TeacherMaterials = () => {
                                     </div>
                                     <div className="form-group">
                                         <label className="form-label">Subject</label>
-                                        <input
-                                            type="text"
-                                            className="form-input"
+                                        <select
+                                            className="form-select"
                                             required
-                                            placeholder="e.g. Data Structures"
                                             value={formData.subject}
                                             onChange={(e) => setFormData({ ...formData, subject: e.target.value })}
-                                        />
+                                        >
+                                            <option value="">Select Subject</option>
+                                            {subjects.map(s => (
+                                                <option key={s.id} value={s.name}>{s.name} ({s.code})</option>
+                                            ))}
+                                        </select>
                                     </div>
                                 </div>
 

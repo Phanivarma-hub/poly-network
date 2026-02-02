@@ -8,6 +8,8 @@ const TeacherQuizzes = () => {
     const { userData } = useAuth();
     const [quizzes, setQuizzes] = useState([]);
     const [classes, setClasses] = useState([]);
+    const [subjects, setSubjects] = useState([]);
+    const [assignmentTemplates, setAssignmentTemplates] = useState([]);
     const [loading, setLoading] = useState(true);
     const [showModal, setShowModal] = useState(false);
     const [editingQuiz, setEditingQuiz] = useState(null);
@@ -40,6 +42,22 @@ const TeacherQuizzes = () => {
             );
             const classesSnapshot = await getDocs(classesQuery);
             setClasses(classesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+
+            // Fetch subjects
+            const subjectsQuery = query(
+                collection(db, 'subjects'),
+                where('college_id', '==', userData.college_id)
+            );
+            const subjectsSnapshot = await getDocs(subjectsQuery);
+            setSubjects(subjectsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+
+            // Fetch assignment templates
+            const templatesQuery = query(
+                collection(db, 'assignments'),
+                where('college_id', '==', userData.college_id)
+            );
+            const templatesSnapshot = await getDocs(templatesQuery);
+            setAssignmentTemplates(templatesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
         } catch (error) {
             console.error('Error fetching data:', error);
         } finally {
@@ -272,15 +290,43 @@ const TeacherQuizzes = () => {
                                     </div>
                                     <div className="form-group">
                                         <label className="form-label">Subject</label>
-                                        <input
-                                            type="text"
-                                            className="form-input"
-                                            placeholder="e.g. Mathematics"
+                                        <select
+                                            className="form-select"
+                                            required
                                             value={formData.subject}
                                             onChange={(e) => setFormData({ ...formData, subject: e.target.value })}
-                                        />
+                                        >
+                                            <option value="">Select Subject</option>
+                                            {subjects.map(s => (
+                                                <option key={s.id} value={s.name}>{s.name} ({s.code})</option>
+                                            ))}
+                                        </select>
                                     </div>
                                 </div>
+
+                                {!editingQuiz && (
+                                    <div className="form-group">
+                                        <label className="form-label">Import from Assignment Template (Optional)</label>
+                                        <select
+                                            className="form-select"
+                                            onChange={(e) => {
+                                                const template = assignmentTemplates.find(t => t.id === e.target.value);
+                                                if (template) {
+                                                    setFormData({
+                                                        ...formData,
+                                                        title: template.title,
+                                                        subject: subjects.find(s => s.id === template.subject_id)?.name || ''
+                                                    });
+                                                }
+                                            }}
+                                        >
+                                            <option value="">Don't import</option>
+                                            {assignmentTemplates.map(t => (
+                                                <option key={t.id} value={t.id}>{t.title}</option>
+                                            ))}
+                                        </select>
+                                    </div>
+                                )}
 
                                 <div className="form-group">
                                     <label className="form-label">Target Class</label>

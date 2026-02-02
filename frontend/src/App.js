@@ -17,6 +17,8 @@ import TeacherManagement from './pages/admin/TeacherManagement';
 import TimetableManagement from './pages/admin/TimetableManagement';
 import AttendanceOverview from './pages/admin/AttendanceOverview';
 import ConcernsManagement from './pages/admin/ConcernsManagement';
+import SubjectManagement from './pages/admin/SubjectManagement';
+import AssignmentManagement from './pages/admin/AssignmentManagement';
 
 // Teacher pages
 import TeacherDashboard from './pages/teacher/TeacherDashboard';
@@ -59,6 +61,8 @@ function App() {
                     <Route path="timetables" element={<TimetableManagement />} />
                     <Route path="attendance" element={<AttendanceOverview />} />
                     <Route path="concerns" element={<ConcernsManagement />} />
+                    <Route path="subjects" element={<SubjectManagement />} />
+                    <Route path="assignments" element={<AssignmentManagement />} />
                   </Routes>
                 </MainLayout>
               </ProtectedRoute>

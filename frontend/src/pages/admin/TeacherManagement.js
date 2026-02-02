@@ -16,6 +16,7 @@ const TeacherManagement = () => {
         uid: '',
         name: '',
         email: '',
+        password: '',
         is_class_teacher: false,
         class_id_assigned: '',
         subjects: ''
@@ -61,6 +62,7 @@ const TeacherManagement = () => {
             uid: generateUID(),
             name: '',
             email: '',
+            password: '',
             is_class_teacher: false,
             class_id_assigned: '',
             subjects: ''
@@ -75,6 +77,7 @@ const TeacherManagement = () => {
                 uid: teacher.uid,
                 name: teacher.name,
                 email: teacher.email,
+                password: '', // Don't show existing password
                 is_class_teacher: teacher.is_class_teacher || false,
                 class_id_assigned: teacher.class_id_assigned || '',
                 subjects: Array.isArray(teacher.subjects) ? teacher.subjects.join(', ') : ''
@@ -99,9 +102,18 @@ const TeacherManagement = () => {
                 subjects: formData.subjects.split(',').map(s => s.trim()).filter(s => s)
             };
 
+            // Add password for new teachers or if password is updated
+            if (formData.password) {
+                teacherData.password = formData.password;
+            }
+
             if (editingTeacher) {
                 await updateDoc(doc(db, 'teachers', editingTeacher.id), teacherData);
             } else {
+                if (!formData.password) {
+                    alert('Password is required for new teachers');
+                    return;
+                }
                 await addDoc(collection(db, 'teachers'), teacherData);
             }
 
@@ -267,6 +279,20 @@ const TeacherManagement = () => {
                                         placeholder="teacher@college.edu"
                                         value={formData.email}
                                         onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                                    />
+                                </div>
+
+                                <div className="form-group">
+                                    <label className="form-label">
+                                        Password {editingTeacher && <span style={{ color: 'var(--text-muted)', fontSize: '0.75rem' }}>(leave blank to keep current)</span>}
+                                    </label>
+                                    <input
+                                        type="password"
+                                        className="form-input"
+                                        required={!editingTeacher}
+                                        placeholder={editingTeacher ? "Leave blank to keep current" : "Enter password"}
+                                        value={formData.password}
+                                        onChange={(e) => setFormData({ ...formData, password: e.target.value })}
                                     />
                                 </div>
 

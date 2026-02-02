@@ -27,7 +27,12 @@ const AdminSettings = () => {
                 if (collegeDoc.exists()) {
                     const data = collegeDoc.data();
                     if (data.settings) {
-                        setSettings(data.settings);
+                        setSettings({
+                            working_days: data.settings.working_days || ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'],
+                            periods_per_day: data.settings.periods_per_day || 8,
+                            lunch_after_period: data.settings.lunch_after_period || 4,
+                            study_hour_period: data.settings.study_hour_period || 8
+                        });
                     }
                 }
             } catch (error) {

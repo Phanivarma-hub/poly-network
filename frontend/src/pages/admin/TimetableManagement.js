@@ -10,6 +10,12 @@ const TimetableManagement = () => {
     const [teachers, setTeachers] = useState([]);
     const [timetable, setTimetable] = useState([]);
     const [selectedClass, setSelectedClass] = useState('');
+    const [subjects, setSubjects] = useState([]);
+    const [settings, setSettings] = useState({
+        working_days: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'],
+        periods_per_day: 8,
+        lunch_after_period: 4
+    });
     const [loading, setLoading] = useState(true);
     const [showModal, setShowModal] = useState(false);
     const [editingSlot, setEditingSlot] = useState({ day: '', period: 0 });
@@ -19,8 +25,8 @@ const TimetableManagement = () => {
         is_lab: false
     });
 
-    const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-    const periods = [1, 2, 3, 4, 5, 6, 7, 8];
+    const days = settings.working_days;
+    const periods = Array.from({ length: settings.periods_per_day }, (_, i) => i + 1);
 
     useEffect(() => {
         const fetchInitialData = async () => {
@@ -38,6 +44,18 @@ const TimetableManagement = () => {
                 const teachersSnapshot = await getDocs(teachersQuery);
                 const teachersList = teachersSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
                 setTeachers(teachersList);
+
+                // Fetch subjects
+                const subjectsQuery = query(collection(db, 'subjects'), where('college_id', '==', userData.college_id));
+                const subjectsSnapshot = await getDocs(subjectsQuery);
+                setSubjects(subjectsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+
+                // Fetch college settings
+                const { getDoc, doc } = await import('firebase/firestore');
+                const collegeDoc = await getDoc(doc(db, 'colleges', userData.college_id));
+                if (collegeDoc.exists() && collegeDoc.data().settings) {
+                    setSettings(collegeDoc.data().settings);
+                }
             } catch (err) {
                 console.error("Error fetching data:", err);
             } finally {
@@ -178,7 +196,7 @@ const TimetableManagement = () => {
                         {periods.map(p => (
                             <div key={p} className="timetable-header">
                                 P{p}
-                                {p === 4 && <div style={{ fontSize: '0.625rem' }}>Lunch After</div>}
+                                {p === settings.lunch_after_period && <div style={{ fontSize: '0.625rem' }}>Lunch After</div>}
                             </div>
                         ))}
 
@@ -242,13 +260,18 @@ const TimetableManagement = () => {
                             <div className="modal-body">
                                 <div className="form-group">
                                     <label className="form-label">Subject</label>
-                                    <input
-                                        type="text"
-                                        className="form-input"
-                                        placeholder="e.g. Mathematics"
+                                    <select
+                                        className="form-select"
+                                        required
                                         value={formData.subject}
                                         onChange={(e) => setFormData({ ...formData, subject: e.target.value })}
-                                    />
+                                    >
+                                        <option value="">Select Subject</option>
+                                        <option value="Study Hour">Study Hour</option>
+                                        {subjects.map(s => (
+                                            <option key={s.id} value={s.name}>{s.name} ({s.code})</option>
+                                        ))}
+                                    </select>
                                 </div>
 
                                 <div className="form-group">

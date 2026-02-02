@@ -132,6 +132,14 @@ const AdminDashboard = () => {
                         <Settings size={16} />
                         College Settings
                     </Link>
+                    <Link to="/admin/subjects" className="btn btn-secondary">
+                        <BookOpen size={16} />
+                        Manage Subjects
+                    </Link>
+                    <Link to="/admin/assignments" className="btn btn-secondary">
+                        <ClipboardCheck size={16} />
+                        Assignment Repository
+                    </Link>
                 </div>
             </div>
         </div>

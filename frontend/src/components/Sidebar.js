@@ -29,6 +29,8 @@ const Sidebar = () => {
         { to: '/admin/timetables', icon: Calendar, label: 'Timetables' },
         { to: '/admin/attendance', icon: ClipboardList, label: 'Attendance' },
         { to: '/admin/concerns', icon: AlertCircle, label: 'Concerns' },
+        { to: '/admin/subjects', icon: BookOpen, label: 'Subjects' },
+        { to: '/admin/assignments', icon: FileText, label: 'Assignments' },
     ];
 
     const teacherLinks = [

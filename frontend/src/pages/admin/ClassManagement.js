@@ -13,7 +13,7 @@ const ClassManagement = () => {
     const [searchTerm, setSearchTerm] = useState('');
     const [formData, setFormData] = useState({
         branch: '',
-        year: new Date().getFullYear().toString(),
+        year: '1',
         semester: '1',
         section: 'A',
         pinValidationType: 'regex',
@@ -21,6 +21,13 @@ const ClassManagement = () => {
         pinMin: 10000,
         pinMax: 99999
     });
+
+    const yearOptions = [
+        { value: '1', label: 'First Year' },
+        { value: '2', label: 'Second Year' },
+        { value: '3', label: 'Third Year' },
+        { value: '4', label: 'Fourth Year' }
+    ];
 
     const fetchClasses = async () => {
         if (!userData?.college_id) return;
@@ -44,7 +51,7 @@ const ClassManagement = () => {
     const resetForm = () => {
         setFormData({
             branch: '',
-            year: new Date().getFullYear().toString(),
+            year: '1',
             semester: '1',
             section: 'A',
             pinValidationType: 'regex',
@@ -170,7 +177,7 @@ const ClassManagement = () => {
                             {filteredClasses.map(cls => (
                                 <tr key={cls.id}>
                                     <td style={{ color: 'var(--text-primary)', fontWeight: 500 }}>{cls.branch}</td>
-                                    <td>{cls.year}</td>
+                                    <td>{yearOptions.find(y => y.value === cls.year)?.label || cls.year}</td>
                                     <td>{cls.semester}</td>
                                     <td><span className="badge badge-primary">{cls.section}</span></td>
                                     <td>
@@ -225,13 +232,16 @@ const ClassManagement = () => {
                                 <div className="form-row">
                                     <div className="form-group">
                                         <label className="form-label">Year</label>
-                                        <input
-                                            type="text"
-                                            className="form-input"
+                                        <select
+                                            className="form-select"
                                             required
                                             value={formData.year}
                                             onChange={(e) => setFormData({ ...formData, year: e.target.value })}
-                                        />
+                                        >
+                                            {yearOptions.map(opt => (
+                                                <option key={opt.value} value={opt.value}>{opt.label}</option>
+                                            ))}
+                                        </select>
                                     </div>
                                     <div className="form-group">
                                         <label className="form-label">Semester</label>
