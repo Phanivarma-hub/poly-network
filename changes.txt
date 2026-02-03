@@ -1,0 +1,3 @@
+changes to add
+Remove register pages all together and add student registration to admin
+remove admin register page and add contact form to add their college
