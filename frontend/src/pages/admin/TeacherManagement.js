@@ -112,9 +112,24 @@ const TeacherManagement = () => {
             } else {
                 if (!formData.password) {
                     alert('Password is required for new teachers');
+                    setLoading(false);
                     return;
                 }
-                await addDoc(collection(db, 'teachers'), teacherData);
+
+                // UID Check
+                const q = query(collection(db, 'teachers'), where('college_id', '==', userData.college_id), where('uid', '==', formData.uid));
+                const snapshot = await getDocs(q);
+                if (!snapshot.empty) {
+                    alert('This UID is already assigned to another teacher.');
+                    setLoading(false);
+                    return;
+                }
+
+                await addDoc(collection(db, 'teachers'), {
+                    ...teacherData,
+                    status: 'active',
+                    created_at: new Date()
+                });
             }
 
             setShowModal(false);
@@ -126,10 +141,18 @@ const TeacherManagement = () => {
     };
 
     const handleDelete = async (id) => {
-        if (window.confirm("Are you sure you want to delete this teacher?")) {
+        // We shouldn't delete teachers if they have history, just deactivate.
+        // But if admin really wants to delete:
+        if (window.confirm("Are you sure? Deleting a teacher may break timetable and history. We recommend deactivating instead.")) {
             await deleteDoc(doc(db, 'teachers', id));
             fetchData();
         }
+    };
+
+    const handleToggleStatus = async (id, currentStatus) => {
+        const newStatus = currentStatus === 'active' ? 'inactive' : 'active';
+        await updateDoc(doc(db, 'teachers', id), { status: newStatus });
+        fetchData();
     };
 
     const getClassName = (classId) => {
@@ -217,6 +240,13 @@ const TeacherManagement = () => {
                                     </td>
                                     <td>
                                         <div style={{ display: 'flex', gap: '0.5rem' }}>
+                                            <button
+                                                className={`btn btn-icon btn-sm ${teacher.status === 'inactive' ? 'btn-success' : 'btn-secondary'}`}
+                                                onClick={() => handleToggleStatus(teacher.id, teacher.status || 'active')}
+                                                title={teacher.status === 'inactive' ? 'Activate' : 'Deactivate'}
+                                            >
+                                                <X size={14} style={{ transform: teacher.status === 'inactive' ? 'rotate(45deg)' : 'none' }} />
+                                            </button>
                                             <button className="btn btn-secondary btn-icon btn-sm" onClick={() => openModal(teacher)}>
                                                 <Edit2 size={14} />
                                             </button>

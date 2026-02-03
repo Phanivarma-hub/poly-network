@@ -1,7 +1,36 @@
-const { db } = require('./firebase');
+const { db, auth } = require('./firebase');
 
 async function seedDatabase() {
-    console.log("Starting database seeding for Poly Network...");
+    console.log("Starting database reset and seeding for Poly Network...");
+
+    const collectionsToClear = [
+        'colleges', 'admins', 'classes', 'teachers', 'students',
+        'teaching_assignments', 'quizzes', 'quiz_questions',
+        'materials', 'timetables', 'attendance_records', 'concerns',
+        'super_admins', 'registration_requests'
+    ];
+
+    console.log("Wiping existing data...");
+    for (const coll of collectionsToClear) {
+        const snapshot = await db.collection(coll).get();
+        const batch = db.batch();
+        snapshot.docs.forEach((doc) => batch.delete(doc.ref));
+        await batch.commit();
+        console.log(`  - Cleared ${coll}`);
+    }
+
+    // ============================================
+    // SUPER ADMINS
+    // ============================================
+    const superAdmins = [
+        {
+            uid: "platform_super_admin",
+            name: "Platform Root",
+            email: "superadmin@pit01.edu",
+            role: "super_admin",
+            created_at: new Date()
+        }
+    ];
 
     // ============================================
     // COLLEGES
@@ -442,6 +471,28 @@ async function seedDatabase() {
     ];
 
     try {
+        // Seed Super Admins
+        console.log("Seeding super admins...");
+        for (const sa of superAdmins) {
+            try {
+                await auth.createUser({
+                    uid: sa.uid,
+                    email: sa.email,
+                    password: "superadmin123",
+                    displayName: sa.name
+                });
+                console.log(`  ✓ Auth user created: ${sa.email}`);
+            } catch (e) {
+                if (e.code === 'auth/uid-already-exists' || e.code === 'auth/email-already-exists' || e.code === 'auth/id-token-revoked') {
+                    console.log(`  - Auth user already exists or error: ${e.message}`);
+                } else {
+                    console.error(`  ✕ Error creating auth user: ${e.message}`);
+                }
+            }
+            await db.collection('super_admins').doc(sa.uid).set(sa);
+            console.log(`  ✓ Firestore record: ${sa.name}`);
+        }
+
         // Seed Colleges
         console.log("Seeding colleges...");
         for (const college of colleges) {
@@ -452,8 +503,19 @@ async function seedDatabase() {
         // Seed Admins
         console.log("Seeding admins...");
         for (const admin of admins) {
+            try {
+                await auth.createUser({
+                    uid: admin.uid,
+                    email: admin.email,
+                    password: "password123",
+                    displayName: admin.name
+                });
+                console.log(`  ✓ Auth user created: ${admin.email}`);
+            } catch (e) {
+                console.log(`  - Auth user status: ${e.message}`);
+            }
             await db.collection('admins').doc(admin.uid).set(admin);
-            console.log(`  ✓ ${admin.name}`);
+            console.log(`  ✓ Firestore record: ${admin.name}`);
         }
 
         // Seed Classes
@@ -466,15 +528,37 @@ async function seedDatabase() {
         // Seed Teachers
         console.log("Seeding teachers...");
         for (const teacher of teachers) {
+            try {
+                await auth.createUser({
+                    uid: teacher.uid,
+                    email: teacher.email,
+                    password: "password123",
+                    displayName: teacher.name
+                });
+                console.log(`  ✓ Auth user created: ${teacher.email}`);
+            } catch (e) {
+                console.log(`  - Auth user status: ${e.message}`);
+            }
             await db.collection('teachers').doc(teacher.uid).set(teacher);
-            console.log(`  ✓ ${teacher.name}`);
+            console.log(`  ✓ Firestore record: ${teacher.name}`);
         }
 
         // Seed Students
         console.log("Seeding students...");
         for (const student of students) {
+            try {
+                await auth.createUser({
+                    uid: student.uid,
+                    email: student.email,
+                    password: student.pin, // Use PIN as initial password for students
+                    displayName: student.name
+                });
+                console.log(`  ✓ Auth user created: ${student.email}`);
+            } catch (e) {
+                console.log(`  - Auth user status: ${e.message}`);
+            }
             await db.collection('students').doc(student.uid).set(student);
-            console.log(`  ✓ ${student.name}`);
+            console.log(`  ✓ Firestore record: ${student.name}`);
         }
 
         // Seed Teaching Assignments

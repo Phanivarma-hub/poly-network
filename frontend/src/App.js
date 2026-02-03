@@ -7,18 +7,23 @@ import MainLayout from './components/layouts/MainLayout';
 // Auth pages
 import Login from './pages/Login';
 import AdminRegister from './pages/AdminRegister';
-import StudentRegister from './pages/StudentRegister';
+import SuperAdminLogin from './pages/SuperAdminLogin';
+import ChangePassword from './pages/ChangePassword';
 
 // Admin pages
 import AdminDashboard from './pages/admin/AdminDashboard';
 import AdminSettings from './pages/admin/AdminSettings';
 import ClassManagement from './pages/admin/ClassManagement';
 import TeacherManagement from './pages/admin/TeacherManagement';
+import StudentManagement from './pages/admin/StudentManagement';
 import TimetableManagement from './pages/admin/TimetableManagement';
 import AttendanceOverview from './pages/admin/AttendanceOverview';
 import ConcernsManagement from './pages/admin/ConcernsManagement';
 import SubjectManagement from './pages/admin/SubjectManagement';
 import AssignmentManagement from './pages/admin/AssignmentManagement';
+
+// Super Admin pages
+import SuperAdminDashboard from './pages/super-admin/SuperAdminDashboard';
 
 // Teacher pages
 import TeacherDashboard from './pages/teacher/TeacherDashboard';
@@ -44,8 +49,16 @@ function App() {
         <Routes>
           {/* Public routes */}
           <Route path="/login" element={<Login />} />
-          <Route path="/register-college" element={<AdminRegister />} />
-          <Route path="/register-student" element={<StudentRegister />} />
+          <Route path="/onboarding" element={<AdminRegister />} />
+          <Route path="/super-admin/login" element={<SuperAdminLogin />} />
+          <Route
+            path="/change-password"
+            element={
+              <ProtectedRoute allowedRoles={['admin', 'teacher', 'student']}>
+                <ChangePassword />
+              </ProtectedRoute>
+            }
+          />
 
           {/* Admin routes */}
           <Route
@@ -58,6 +71,7 @@ function App() {
                     <Route path="settings" element={<AdminSettings />} />
                     <Route path="classes" element={<ClassManagement />} />
                     <Route path="teachers" element={<TeacherManagement />} />
+                    <Route path="students" element={<StudentManagement />} />
                     <Route path="timetables" element={<TimetableManagement />} />
                     <Route path="attendance" element={<AttendanceOverview />} />
                     <Route path="concerns" element={<ConcernsManagement />} />
@@ -100,6 +114,22 @@ function App() {
                     <Route path="quizzes" element={<StudentQuizzes />} />
                     <Route path="materials" element={<StudentMaterials />} />
                     <Route path="concerns" element={<StudentConcerns />} />
+                  </Routes>
+                </MainLayout>
+              </ProtectedRoute>
+            }
+          />
+
+          {/* Super Admin routes */}
+          <Route
+            path="/super-admin/*"
+            element={
+              <ProtectedRoute allowedRoles={['super_admin']}>
+                <MainLayout>
+                  <Routes>
+                    <Route index element={<SuperAdminDashboard />} />
+                    <Route path="requests" element={<SuperAdminDashboard />} />
+                    <Route path="colleges" element={<div>Colleges Placeholder</div>} />
                   </Routes>
                 </MainLayout>
               </ProtectedRoute>

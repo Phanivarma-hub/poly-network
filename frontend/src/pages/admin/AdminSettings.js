@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { db } from '../../firebase';
-import { doc, getDoc, updateDoc } from 'firebase/firestore';
+import { doc, getDoc, updateDoc, query, collection, where, getDocs } from 'firebase/firestore';
 import { Save, Loader2 } from 'lucide-react';
 
 const AdminSettings = () => {
@@ -55,6 +55,15 @@ const AdminSettings = () => {
     };
 
     const handleSave = async () => {
+        // Check if timetable exists
+        const ttQuery = query(collection(db, 'timetables'), where('college_id', '==', userData.college_id));
+        const ttSnapshot = await getDocs(ttQuery);
+
+        if (!ttSnapshot.empty) {
+            const confirmed = window.confirm("A timetable already exists. Changing college settings may invalidate the current timetable. Do you want to proceed?");
+            if (!confirmed) return;
+        }
+
         setSaving(true);
         setMessage({ type: '', text: '' });
 

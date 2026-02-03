@@ -26,9 +26,7 @@ const Login = () => {
             description: 'Institue Management',
             color: 'linear-gradient(135deg, #6366f1 0%, #4338ca 100%)',
             bgLight: 'rgba(99, 102, 241, 0.1)',
-            hasRegister: true,
-            registerPath: '/register-college',
-            registerLabel: 'Register College'
+            hasRegister: false
         },
         {
             id: 'student',
@@ -37,9 +35,7 @@ const Login = () => {
             description: 'Learning Resources',
             color: 'linear-gradient(135deg, #22c55e 0%, #15803d 100%)',
             bgLight: 'rgba(34, 197, 94, 0.1)',
-            hasRegister: true,
-            registerPath: '/register-student',
-            registerLabel: 'New Student'
+            hasRegister: false
         },
         {
             id: 'teacher',
@@ -62,19 +58,23 @@ const Login = () => {
 
 
         try {
-            const { role } = await login(
+            const result = await login(
                 formData.collegeCode,
                 formData.userId,
                 formData.password
             );
 
-            if (role !== selectedRole) {
+            if (result.role !== selectedRole) {
                 setError(`Invalid credentials. This is not a ${selectedRole} account.`);
                 setLoading(false);
                 return;
             }
 
-            navigate(`/${role}`);
+            if (result.mustChangePassword) {
+                navigate('/change-password');
+            } else {
+                navigate(`/${result.role}`);
+            }
         } catch (err) {
             setError(err.message || 'Login failed. Please check your credentials.');
         } finally {

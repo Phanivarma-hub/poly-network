@@ -24,13 +24,20 @@ const Sidebar = () => {
     const adminLinks = [
         { to: '/admin', icon: LayoutDashboard, label: 'Dashboard', end: true },
         { to: '/admin/settings', icon: Settings, label: 'College Settings' },
+        { to: '/admin/subjects', icon: BookOpen, label: 'Subjects' },
         { to: '/admin/classes', icon: GraduationCap, label: 'Classes' },
         { to: '/admin/teachers', icon: Users, label: 'Teachers' },
-        { to: '/admin/timetables', icon: Calendar, label: 'Timetables' },
-        { to: '/admin/attendance', icon: ClipboardList, label: 'Attendance' },
+        { to: '/admin/students', icon: Users, label: 'Students' },
+        { to: '/admin/assignments', icon: FileText, label: 'Teaching Assignments' },
+        { to: '/admin/timetables', icon: Calendar, label: 'Timetable' },
+        { to: '/admin/attendance', icon: ClipboardList, label: 'Attendance Overview' },
         { to: '/admin/concerns', icon: AlertCircle, label: 'Concerns' },
-        { to: '/admin/subjects', icon: BookOpen, label: 'Subjects' },
-        { to: '/admin/assignments', icon: FileText, label: 'Assignments' },
+    ];
+
+    const superAdminLinks = [
+        { to: '/super-admin', icon: LayoutDashboard, label: 'Dashboard', end: true },
+        { to: '/super-admin/requests', icon: MessageSquare, label: 'Registration Requests' },
+        { to: '/super-admin/colleges', icon: GraduationCap, label: 'Colleges' },
     ];
 
     const teacherLinks = [
@@ -60,6 +67,9 @@ const Sidebar = () => {
     if (role === 'admin') {
         links = adminLinks;
         sectionTitle = 'Admin Menu';
+    } else if (role === 'super_admin') {
+        links = superAdminLinks;
+        sectionTitle = 'Super Admin';
     } else if (role === 'teacher') {
         links = [...teacherLinks, ...teacherExtraLinks];
         sectionTitle = 'Teacher Menu';

@@ -110,6 +110,11 @@ export function AuthProvider({ children }) {
             throw authError;
         }
 
+        if (foundUserDoc.must_change_password) {
+            // We can return this info to the login page to handle redirect
+            return { userDoc: foundUserDoc, role: userRole, mustChangePassword: true };
+        }
+
         return { userDoc: foundUserDoc, role: userRole };
     }
 
@@ -178,6 +183,14 @@ export function AuthProvider({ children }) {
                     if (!teacherSnapshot.empty) {
                         const data = teacherSnapshot.docs[0].data();
                         userDoc = { id: teacherSnapshot.docs[0].id, ...data };
+                    }
+                }
+
+                if (!userDoc) {
+                    // Check super_admins
+                    const superAdminDoc = await getDoc(doc(db, 'super_admins', currentUser.uid));
+                    if (superAdminDoc.exists()) {
+                        userDoc = { id: superAdminDoc.id, ...superAdminDoc.data(), role: 'super_admin' };
                     }
                 }
 

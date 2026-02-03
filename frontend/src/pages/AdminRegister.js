@@ -1,229 +1,167 @@
 import React, { useState } from 'react';
-import { auth, db } from '../firebase';
-import { createUserWithEmailAndPassword } from 'firebase/auth';
-import { collection, doc, setDoc, query, where, getDocs } from 'firebase/firestore';
+import { db } from '../firebase';
+import { collection, addDoc } from 'firebase/firestore';
 import { useNavigate, Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Building2, Mail, Lock, Shield, ArrowRight, Loader2, ArrowLeft } from 'lucide-react';
-import '../styles/styles.css';
+import { Building2, Mail, Shield, ArrowRight, Loader2, ArrowLeft, User, Phone, Users } from 'lucide-react';
 import '../styles/auth.css';
 
 const AdminRegister = () => {
     const [formData, setFormData] = useState({
         collegeName: '',
-        collegeCode: '',
-        email: '',
-        password: '',
-        confirmPassword: ''
+        collegeAddress: '',
+        collegeType: '',
+        officialEmail: '',
+        contactPerson: '',
+        contactRole: '',
+        phoneNumber: '',
+        studentCount: ''
     });
+    const [submitted, setSubmitted] = useState(false);
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
     const navigate = useNavigate();
 
     const handleChange = (e) => {
         const { name, value } = e.target;
-        setFormData(prev => ({
-            ...prev,
-            [name]: name === 'collegeCode' ? value.toUpperCase() : value
-        }));
+        setFormData(prev => ({ ...prev, [name]: value }));
     };
 
-    const handleRegister = async (e) => {
+    const handleSubmit = async (e) => {
         e.preventDefault();
         setError('');
-
-        if (formData.password !== formData.confirmPassword) {
-            return setError('Passwords do not match');
-        }
-
         setLoading(true);
 
         try {
-            // 1. Check if college code is unique
-            const q = query(collection(db, 'colleges'), where('code', '==', formData.collegeCode));
-            const snapshot = await getDocs(q);
-
-            if (!snapshot.empty) {
-                throw new Error('This College Code is already registered.');
-            }
-
-            // 2. Create Auth User
-            const userCredential = await createUserWithEmailAndPassword(auth, formData.email, formData.password);
-            const user = userCredential.user;
-
-            // 3. Create College Document
-            const collegeId = `col_${Date.now()}`;
-            await setDoc(doc(db, 'colleges', collegeId), {
-                name: formData.collegeName,
-                code: formData.collegeCode,
-                created_at: new Date(),
-                settings: {
-                    workingDays: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'],
-                    periodsPerDay: 8,
-                    lunchAfterPeriod: 4
-                }
-            });
-
-            // 4. Create Admin Document
-            await setDoc(doc(db, 'admins', user.uid), {
-                uid: user.uid,
-                email: formData.email,
-                college_id: collegeId,
-                role: 'admin',
+            await addDoc(collection(db, 'registration_requests'), {
+                ...formData,
+                status: 'pending',
                 created_at: new Date()
             });
-
-            navigate('/admin/settings');
+            setSubmitted(true);
         } catch (err) {
             console.error(err);
-            setError(err.message || 'Registration failed.');
+            setError(err.message || 'Submission failed.');
         } finally {
             setLoading(false);
         }
     };
 
+    if (submitted) {
+        return (
+            <div className="modern-auth-container">
+                <div className="bg-dots"></div>
+                <div className="auth-content-wrapper form-active">
+                    <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} className="modern-auth-card text-center p-8">
+                        <div className="role-badge-icon mx-auto mb-4" style={{ background: 'rgba(34, 197, 94, 0.1)', color: '#22c55e' }}>
+                            <Shield size={32} />
+                        </div>
+                        <h2 className="text-2xl font-bold mb-2">Request Submitted</h2>
+                        <p className="text-gray-600 mb-6">Thank you for your interest. Our platform team will review your application and contact you via email with your credentials shortly.</p>
+                        <Link to="/login" className="modern-btn-submit inline-block">Back to Home</Link>
+                    </motion.div>
+                </div>
+            </div>
+        );
+    }
+
     return (
         <div className="modern-auth-container">
-            {/* Background Decor */}
             <div className="bg-dots"></div>
-            <div className="bg-circle circle-1"></div>
-            <div className="bg-circle circle-2"></div>
-
-            <div className="auth-content-wrapper form-active">
-                <motion.div
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    className="corner-logo"
-                >
-                    <img src="/campusnet-logo.jpg" alt="Logo" />
-                </motion.div>
-
-                <motion.div
-                    initial={{ opacity: 0, y: -20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    className="auth-brand"
-                >
-                    <h1 className="brand-title">Campus<span className="text-brand-blue">Net</span></h1>
-                    <p className="brand-tagline">── CONNECT • LEARN • SUCCEED ──</p>
-                </motion.div>
-
-                <motion.div
-                    initial={{ opacity: 0, scale: 0.95 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    className="modern-auth-card"
-                >
+            <div className="auth-content-wrapper form-active" style={{ maxWidth: '800px' }}>
+                <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="modern-auth-card">
                     <Link to="/login" className="modern-back-btn">
                         <ArrowLeft size={18} />
                         <span>Back to Login</span>
                     </Link>
 
-                    <div className="auth-role-header" style={{ '--role-theme': 'linear-gradient(135deg, #6366f1 0%, #4338ca 100%)' }}>
+                    <div className="auth-role-header">
                         <div className="role-badge-icon">
-                            <Shield size={24} />
+                            <Building2 size={24} />
                         </div>
                         <div className="role-badge-text">
-                            <h3>College Registration</h3>
-                            <p>Initialize your institute network</p>
+                            <h3>Register Your College</h3>
+                            <p>Submit details for platform onboarding</p>
                         </div>
                     </div>
 
-                    {error && (
-                        <motion.div
-                            initial={{ opacity: 0, height: 0 }}
-                            animate={{ opacity: 1, height: 'auto' }}
-                            className="modern-alert"
-                        >
-                            {error}
-                        </motion.div>
-                    )}
+                    {error && <div className="modern-alert">{error}</div>}
 
-                    <form onSubmit={handleRegister} className="modern-form">
+                    <form onSubmit={handleSubmit} className="modern-form grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div className="modern-form-group">
                             <label>College Name</label>
                             <div className="modern-input-wrapper">
                                 <Building2 size={18} className="input-icon" />
-                                <input
-                                    name="collegeName"
-                                    type="text"
-                                    required
-                                    placeholder="e.g. Stanford University"
-                                    value={formData.collegeName}
-                                    onChange={handleChange}
-                                />
+                                <input name="collegeName" type="text" required placeholder="Full Institute Name" value={formData.collegeName} onChange={handleChange} />
                             </div>
                         </div>
 
                         <div className="modern-form-group">
-                            <label>College Code (Unique)</label>
+                            <label>College Type</label>
                             <div className="modern-input-wrapper">
                                 <Shield size={18} className="input-icon" />
-                                <input
-                                    name="collegeCode"
-                                    type="text"
-                                    required
-                                    placeholder="e.g. STAN01"
-                                    value={formData.collegeCode}
-                                    onChange={handleChange}
-                                />
+                                <select name="collegeType" required value={formData.collegeType} onChange={handleChange} className="w-full bg-transparent border-none outline-none">
+                                    <option value="">Select Type</option>
+                                    <option value="Polytechnic">Polytechnic</option>
+                                    <option value="Engineering">Engineering</option>
+                                    <option value="Vocational">Vocational</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div className="modern-form-group md:col-span-2">
+                            <label>College Address</label>
+                            <div className="modern-input-wrapper">
+                                <Building2 size={18} className="input-icon" />
+                                <input name="collegeAddress" type="text" required placeholder="City, State, Country" value={formData.collegeAddress} onChange={handleChange} />
                             </div>
                         </div>
 
                         <div className="modern-form-group">
-                            <label>Admin Email</label>
+                            <label>Official College Email</label>
                             <div className="modern-input-wrapper">
                                 <Mail size={18} className="input-icon" />
-                                <input
-                                    name="email"
-                                    type="email"
-                                    required
-                                    placeholder="admin@college.edu"
-                                    value={formData.email}
-                                    onChange={handleChange}
-                                />
+                                <input name="officialEmail" type="email" required placeholder="contact@college.edu" value={formData.officialEmail} onChange={handleChange} />
                             </div>
                         </div>
 
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div className="modern-form-group">
-                                <label>Password</label>
-                                <div className="modern-input-wrapper">
-                                    <Lock size={18} className="input-icon" />
-                                    <input
-                                        name="password"
-                                        type="password"
-                                        required
-                                        placeholder="••••••••"
-                                        value={formData.password}
-                                        onChange={handleChange}
-                                    />
-                                </div>
-                            </div>
-                            <div className="modern-form-group">
-                                <label>Confirm Password</label>
-                                <div className="modern-input-wrapper">
-                                    <Lock size={18} className="input-icon" />
-                                    <input
-                                        name="confirmPassword"
-                                        type="password"
-                                        required
-                                        placeholder="••••••••"
-                                        value={formData.confirmPassword}
-                                        onChange={handleChange}
-                                    />
-                                </div>
+                        <div className="modern-form-group">
+                            <label>Phone Number</label>
+                            <div className="modern-input-wrapper">
+                                <Phone size={18} className="input-icon" />
+                                <input name="phoneNumber" type="tel" required placeholder="Primary Contact Number" value={formData.phoneNumber} onChange={handleChange} />
                             </div>
                         </div>
 
-                        <button type="submit" className="modern-btn-submit" disabled={loading}>
-                            {loading ? (
-                                <Loader2 size={20} className="animate-spin" />
-                            ) : (
-                                <>
-                                    Initialize College Network
-                                    <ArrowRight size={20} />
-                                </>
-                            )}
-                        </button>
+                        <div className="modern-form-group">
+                            <label>Contact Person Name</label>
+                            <div className="modern-input-wrapper">
+                                <User size={18} className="input-icon" />
+                                <input name="contactPerson" type="text" required placeholder="Principal / Admin Name" value={formData.contactPerson} onChange={handleChange} />
+                            </div>
+                        </div>
+
+                        <div className="modern-form-group">
+                            <label>Contact Person Role</label>
+                            <div className="modern-input-wrapper">
+                                <Shield size={18} className="input-icon" />
+                                <input name="contactRole" type="text" required placeholder="e.g. Principal" value={formData.contactRole} onChange={handleChange} />
+                            </div>
+                        </div>
+
+                        <div className="modern-form-group">
+                            <label>Estimated Student Count</label>
+                            <div className="modern-input-wrapper">
+                                <Users size={18} className="input-icon" />
+                                <input name="studentCount" type="number" required placeholder="e.g. 1200" value={formData.studentCount} onChange={handleChange} />
+                            </div>
+                        </div>
+
+                        <div className="md:col-span-2">
+                            <button type="submit" className="modern-btn-submit w-full" disabled={loading}>
+                                {loading ? <Loader2 size={20} className="animate-spin" /> : <>Submit Registration Request <ArrowRight size={20} /></>}
+                            </button>
+                        </div>
                     </form>
                 </motion.div>
             </div>

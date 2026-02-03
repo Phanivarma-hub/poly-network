@@ -110,10 +110,25 @@ const ClassManagement = () => {
     };
 
     const handleDelete = async (id) => {
-        if (window.confirm("Are you sure you want to delete this class? This will not delete associated students but will break their class association.")) {
+        // Check if students are assigned to this class
+        const q = query(collection(db, 'students'), where('class_id', '==', id));
+        const snapshot = await getDocs(q);
+
+        if (!snapshot.empty) {
+            alert("This class cannot be deleted because it has students assigned to it. Please disable it instead.");
+            return;
+        }
+
+        if (window.confirm("Are you sure you want to delete this class?")) {
             await deleteDoc(doc(db, 'classes', id));
             fetchClasses();
         }
+    };
+
+    const handleToggleStatus = async (id, currentStatus) => {
+        const newStatus = currentStatus === 'active' ? 'inactive' : 'active';
+        await updateDoc(doc(db, 'classes', id), { status: newStatus });
+        fetchClasses();
     };
 
     const filteredClasses = classes.filter(cls =>
@@ -190,6 +205,13 @@ const ClassManagement = () => {
                                     </td>
                                     <td>
                                         <div style={{ display: 'flex', gap: '0.5rem' }}>
+                                            <button
+                                                className={`btn btn-icon btn-sm ${cls.status === 'inactive' ? 'btn-success' : 'btn-secondary'}`}
+                                                onClick={() => handleToggleStatus(cls.id, cls.status || 'active')}
+                                                title={cls.status === 'inactive' ? 'Activate' : 'Deactivate'}
+                                            >
+                                                <X size={14} style={{ transform: cls.status === 'inactive' ? 'rotate(45deg)' : 'none' }} />
+                                            </button>
                                             <button className="btn btn-secondary btn-icon btn-sm" onClick={() => openModal(cls)}>
                                                 <Edit2 size={14} />
                                             </button>

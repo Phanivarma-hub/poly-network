@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { db } from '../../firebase';
-import { collection, query, where, getDocs, addDoc, deleteDoc, doc } from 'firebase/firestore';
+import { collection, query, where, getDocs, addDoc, deleteDoc, doc, writeBatch } from 'firebase/firestore';
 import { useAuth } from '../../context/AuthContext';
 import { Plus, Trash2, X, Calendar } from 'lucide-react';
 
@@ -114,6 +114,41 @@ const TimetableManagement = () => {
 
     const handleSaveSlot = async (e) => {
         e.preventDefault();
+
+        // VALIDATION LOGIC
+        if (formData.subject.trim() && formData.teacher_id) {
+            // 1. Max 8 periods per day (inherent in UI)
+
+            // 2. Max 40 periods per week for a teacher
+            const teacherSlotsQ = query(collection(db, 'timetables'), where('college_id', '==', userData.college_id), where('teacher_id', '==', formData.teacher_id));
+            const teacherSnapshot = await getDocs(teacherSlotsQ);
+            const teacherSlots = teacherSnapshot.docs.filter(d => d.id !== getSlot(editingSlot.day, editingSlot.period)?.id);
+            if (teacherSlots.length >= 40) {
+                alert("This teacher has reached the maximum of 40 periods per week.");
+                return;
+            }
+
+            // 3. Max 7 periods per day for a teacher
+            const teacherDaySlots = teacherSlots.filter(s => s.data().day === editingSlot.day);
+            if (teacherDaySlots.length >= 7) {
+                alert("This teacher has reached the maximum of 7 periods for this day.");
+                return;
+            }
+
+            // 4. Subject overlap check (Teacher cannot be in two classes at once)
+            const overlapQ = query(collection(db, 'timetables'),
+                where('college_id', '==', userData.college_id),
+                where('day', '==', editingSlot.day),
+                where('period', '==', editingSlot.period),
+                where('teacher_id', '==', formData.teacher_id)
+            );
+            const overlapSnapshot = await getDocs(overlapQ);
+            const overlapping = overlapSnapshot.docs.filter(d => d.data().class_id !== selectedClass);
+            if (overlapping.length > 0) {
+                alert("This teacher is already assigned to another class at this time.");
+                return;
+            }
+        }
 
         try {
             // Delete existing slot if any
