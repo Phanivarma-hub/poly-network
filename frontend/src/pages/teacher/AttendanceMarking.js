@@ -16,6 +16,9 @@ const AttendanceMarking = () => {
     const [loading, setLoading] = useState(false);
     const [saving, setSaving] = useState(false);
     const [message, setMessage] = useState({ type: '', text: '' });
+    const [dayRecords, setDayRecords] = useState({});
+    const [expandedPeriod, setExpandedPeriod] = useState(null);
+    const [summaryDate, setSummaryDate] = useState(new Date().toISOString().split('T')[0]); // Date for the summary table
 
     const periods = [1, 2, 3, 4, 5, 6, 7, 8];
 
@@ -118,6 +121,35 @@ const AttendanceMarking = () => {
         fetchStudentsAndRecord();
     }, [selectedClass, selectedDate, selectedPeriod, userData]);
 
+    // Fetch full day records if user is class teacher for selected class
+    useEffect(() => {
+        const fetchDayRecords = async () => {
+            if (!selectedClass || !summaryDate || !userData.class_id_assigned || selectedClass !== userData.class_id_assigned) {
+                setDayRecords({});
+                return;
+            }
+
+            try {
+                const q = query(
+                    collection(db, 'attendance_records'),
+                    where('college_id', '==', userData.college_id),
+                    where('class_id', '==', selectedClass),
+                    where('date', '==', summaryDate)
+                );
+                const snapshot = await getDocs(q);
+                const records = {};
+                snapshot.forEach(doc => {
+                    const data = doc.data();
+                    records[data.period] = data; // Map by period number
+                });
+                setDayRecords(records);
+            } catch (e) {
+                console.error("Error fetching day records:", e);
+            }
+        };
+        fetchDayRecords();
+    }, [selectedClass, summaryDate, userData, saving]); // Use summaryDate instead of selectedDate
+
     const toggleAttendance = (pin) => {
         // Only allow editing if teacher is class teacher or admin, or if no existing record
         if (existingRecord && !userData.is_class_teacher && userData.role !== 'admin') {
@@ -154,7 +186,10 @@ const AttendanceMarking = () => {
                 period: parseInt(selectedPeriod),
                 present,
                 absent,
+                present,
+                absent,
                 marked_by: userData.uid,
+                marked_by_name: userData.name || 'Unknown Teacher',
                 marked_at: new Date()
             };
 
@@ -257,33 +292,59 @@ const AttendanceMarking = () => {
                         <span className="badge badge-danger">Absent: {absentCount}</span>
                     </div>
 
-                    <div className="attendance-list">
-                        {students.map(student => (
-                            <div
-                                key={student.id}
-                                className="attendance-item"
-                                onClick={() => canEdit && toggleAttendance(student.pin)}
-                                style={{ cursor: canEdit ? 'pointer' : 'not-allowed', opacity: canEdit ? 1 : 0.7 }}
-                            >
-                                <div className="attendance-student">
-                                    <code className="attendance-pin">{student.pin}</code>
-                                    <span style={{ fontWeight: 500 }}>{student.name}</span>
-                                </div>
-                                <div>
-                                    {attendance[student.pin] === 'present' ? (
-                                        <span className="badge badge-success">
-                                            <CheckCircle size={12} style={{ marginRight: '4px' }} />
-                                            Present
-                                        </span>
-                                    ) : (
-                                        <span className="badge badge-danger">
-                                            <XCircle size={12} style={{ marginRight: '4px' }} />
-                                            Absent
-                                        </span>
-                                    )}
-                                </div>
-                            </div>
-                        ))}
+                    {/* Main Container Box for the Grid */}
+                    <div style={{
+                        border: '1px solid rgba(255, 255, 255, 0.1)', // Glass border
+                        borderRadius: '16px',
+                        padding: '1.5rem',
+                        backgroundColor: 'rgba(30, 41, 59, 0.6)', // Dark glassy background
+                        backdropFilter: 'blur(12px)',
+                        marginTop: '1rem',
+                        boxShadow: '0 8px 32px 0 rgba(0, 0, 0, 0.37)' // Glass shadow
+                    }}>
+                        <div style={{
+                            display: 'grid',
+                            // Smaller columns
+                            gridTemplateColumns: 'repeat(auto-fill, minmax(60px, 1fr))',
+                            gap: '8px', // Smaller gap
+                        }}>
+                            {students.map(student => {
+                                const isAbsent = attendance[student.pin] === 'absent';
+                                return (
+                                    <div
+                                        key={student.id}
+                                        onClick={() => canEdit && toggleAttendance(student.pin)}
+                                        title={student.name}
+                                        style={{
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            justifyContent: 'center',
+                                            height: '45px', // Smaller height
+                                            padding: '2px',
+                                            borderRadius: '8px', // Slightly rounder for modern theme
+                                            cursor: canEdit ? 'pointer' : 'not-allowed',
+                                            fontWeight: '600',
+                                            fontSize: '0.75rem', // Smaller font for PIN number
+                                            transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+                                            // Bright green for present, Red for absent. Both with white text for better contrast/theme.
+                                            backgroundColor: isAbsent ? '#ef4444' : '#22c55e',
+                                            color: 'white',
+                                            border: isAbsent ? '2px solid #b91c1c' : '2px solid #16a34a', // Darker border for depth
+                                            boxShadow: '0 1px 2px rgba(0, 0, 0, 0.05)',
+                                            userSelect: 'none',
+                                            overflow: 'hidden',
+                                            whiteSpace: 'nowrap',
+                                            textOverflow: 'ellipsis'
+                                        }}
+                                        onMouseDown={(e) => e.currentTarget.style.transform = 'scale(0.95)'}
+                                        onMouseUp={(e) => e.currentTarget.style.transform = 'scale(1)'}
+                                        onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
+                                    >
+                                        {student.pin}
+                                    </div>
+                                );
+                            })}
+                        </div>
                     </div>
 
                     {canEdit && (
@@ -311,6 +372,130 @@ const AttendanceMarking = () => {
             ) : (
                 <div className="empty-state">
                     <p>Select a class, date, and period to mark attendance.</p>
+                </div>
+            )}
+
+            {/* Class Teacher Summary Section - Expandable Table */}
+            {selectedClass && userData.class_id_assigned === selectedClass && students.length > 0 && (
+                <div style={{ marginTop: '3rem' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem' }}>
+                        <h2 className="page-title" style={{ fontSize: '1.5rem', marginBottom: 0 }}>Daily Attendance Overview</h2>
+                        <input
+                            type="date"
+                            className="form-input"
+                            style={{ width: 'auto', padding: '0.5rem', borderRadius: '8px', border: '1px solid #e2e8f0' }}
+                            value={summaryDate}
+                            onChange={(e) => setSummaryDate(e.target.value)}
+                        />
+                    </div>
+                    <div style={{
+                        overflowX: 'auto',
+                        border: '1px solid rgba(255, 255, 255, 0.1)',
+                        borderRadius: '16px',
+                        backgroundColor: 'rgba(30, 41, 59, 0.6)',
+                        backdropFilter: 'blur(12px)',
+                        padding: '1rem'
+                    }}>
+                        <table style={{ width: '100%', borderCollapse: 'separate', borderSpacing: '0 8px', color: 'white' }}>
+                            <thead>
+                                <tr style={{ color: '#94a3b8', fontSize: '0.9rem', textAlign: 'left' }}>
+                                    <th style={{ padding: '0 1rem' }}>Period</th>
+                                    <th style={{ padding: '0 1rem' }}>Teacher</th>
+                                    <th style={{ padding: '0 1rem' }}>Total</th>
+                                    <th style={{ padding: '0 1rem' }}>Present</th>
+                                    <th style={{ padding: '0 1rem' }}>Absent</th>
+                                    <th style={{ padding: '0 1rem' }}>%</th>
+                                    <th style={{ padding: '0 1rem' }}></th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {periods.map(p => {
+                                    const rec = dayRecords[p];
+                                    const isMarked = !!rec;
+                                    const presentCount = rec?.present?.length || 0;
+                                    const absentCount = rec?.absent?.length || 0;
+                                    const totalMarked = presentCount + absentCount;
+                                    const percentage = totalMarked > 0 ? Math.round((presentCount / totalMarked) * 100) : 0;
+                                    const isExpanded = expandedPeriod === p;
+
+                                    return (
+                                        <React.Fragment key={p}>
+                                            <tr
+                                                onClick={() => setExpandedPeriod(isExpanded ? null : p)}
+                                                style={{
+                                                    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+                                                    cursor: 'pointer',
+                                                    transition: 'background 0.2s'
+                                                }}
+                                                className="hover:bg-white/10"
+                                            >
+                                                <td style={{ padding: '1rem', borderRadius: '8px 0 0 8px' }}>{p}</td>
+                                                <td style={{ padding: '1rem' }}>{rec?.marked_by_name || (isMarked ? 'Teacher' : '-')}</td>
+                                                <td style={{ padding: '1rem' }}>{isMarked ? totalMarked : '-'}</td>
+                                                <td style={{ padding: '1rem', color: '#4ade80' }}>{isMarked ? presentCount : '-'}</td>
+                                                <td style={{ padding: '1rem', color: '#f87171' }}>{isMarked ? absentCount : '-'}</td>
+                                                <td style={{ padding: '1rem', fontWeight: 'bold' }}>{isMarked ? `${percentage}%` : '-'}</td>
+                                                <td style={{ padding: '1rem', borderRadius: '0 8px 8px 0', textAlign: 'right' }}>
+                                                    <span style={{
+                                                        display: 'inline-block',
+                                                        transform: isExpanded ? 'rotate(180deg)' : 'rotate(0deg)',
+                                                        transition: 'transform 0.3s'
+                                                    }}>
+                                                        ▼
+                                                    </span>
+                                                </td>
+                                            </tr>
+                                            {isExpanded && isMarked && (
+                                                <tr>
+                                                    <td colSpan="7" style={{ padding: '0' }}>
+                                                        <div style={{
+                                                            padding: '1rem',
+                                                            backgroundColor: 'rgba(0,0,0,0.2)',
+                                                            borderRadius: '8px',
+                                                            marginTop: '-4px', // Connect to row above
+                                                            marginBottom: '8px',
+                                                            display: 'flex',
+                                                            flexWrap: 'wrap',
+                                                            gap: '8px'
+                                                        }}>
+                                                            {students.map(student => {
+                                                                const isPresent = rec.present?.includes(student.pin);
+                                                                const isAbsent = rec.absent?.includes(student.pin);
+
+                                                                // Skip if student status is unknown/not marked in this record
+                                                                if (!isPresent && !isAbsent) return null;
+
+                                                                const bgColor = isPresent ? '#22c55e' : '#ef4444';
+                                                                const borderColor = isPresent ? '#16a34a' : '#dc2626';
+
+                                                                return (
+                                                                    <div key={student.id} style={{
+                                                                        display: 'inline-flex',
+                                                                        alignItems: 'center',
+                                                                        justifyContent: 'center',
+                                                                        padding: '8px 16px',
+                                                                        borderRadius: '10px',
+                                                                        backgroundColor: bgColor,
+                                                                        border: `2px solid ${borderColor}`,
+                                                                        color: 'white',
+                                                                        fontWeight: 'bold',
+                                                                        fontSize: '1rem',
+                                                                        boxShadow: '0 2px 4px rgba(0,0,0,0.2)'
+                                                                    }}>
+                                                                        {student.pin}
+                                                                    </div>
+                                                                );
+                                                            })}
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                            )}
+                                        </React.Fragment>
+                                    );
+                                })}
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
             )}
         </div>
