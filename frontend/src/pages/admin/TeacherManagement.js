@@ -8,6 +8,7 @@ const TeacherManagement = () => {
     const { userData } = useAuth();
     const [teachers, setTeachers] = useState([]);
     const [classes, setClasses] = useState([]);
+    const [subjects, setSubjects] = useState([]);
     const [loading, setLoading] = useState(true);
     const [showModal, setShowModal] = useState(false);
     const [editingTeacher, setEditingTeacher] = useState(null);
@@ -19,7 +20,7 @@ const TeacherManagement = () => {
         password: '',
         is_class_teacher: false,
         class_id_assigned: '',
-        subjects: ''
+        subject_assignments: [] // Array of { subject_id, class_id }
     });
 
     const fetchData = async () => {
@@ -37,6 +38,12 @@ const TeacherManagement = () => {
             const classesSnapshot = await getDocs(classesQuery);
             const classesList = classesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
             setClasses(classesList);
+
+            // Fetch subjects for dropdown
+            const subjectsQuery = query(collection(db, 'subjects'), where('college_id', '==', userData.college_id));
+            const subjectsSnapshot = await getDocs(subjectsQuery);
+            const subjectsList = subjectsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+            setSubjects(subjectsList);
         } catch (err) {
             console.error("Error fetching data:", err);
         } finally {
@@ -65,7 +72,7 @@ const TeacherManagement = () => {
             password: '',
             is_class_teacher: false,
             class_id_assigned: '',
-            subjects: ''
+            subject_assignments: []
         });
         setEditingTeacher(null);
     };
@@ -77,15 +84,34 @@ const TeacherManagement = () => {
                 uid: teacher.uid,
                 name: teacher.name,
                 email: teacher.email,
-                password: '', // Don't show existing password
+                password: '',
                 is_class_teacher: teacher.is_class_teacher || false,
                 class_id_assigned: teacher.class_id_assigned || '',
-                subjects: Array.isArray(teacher.subjects) ? teacher.subjects.join(', ') : ''
+                subject_assignments: teacher.subject_assignments || []
             });
         } else {
             resetForm();
         }
         setShowModal(true);
+    };
+
+    const handleAddAssignment = () => {
+        setFormData({
+            ...formData,
+            subject_assignments: [...formData.subject_assignments, { subject_id: '', class_id: '' }]
+        });
+    };
+
+    const handleRemoveAssignment = (index) => {
+        const newAssignments = [...formData.subject_assignments];
+        newAssignments.splice(index, 1);
+        setFormData({ ...formData, subject_assignments: newAssignments });
+    };
+
+    const handleUpdateAssignment = (index, field, value) => {
+        const newAssignments = [...formData.subject_assignments];
+        newAssignments[index][field] = value;
+        setFormData({ ...formData, subject_assignments: newAssignments });
     };
 
     const handleSubmit = async (e) => {
@@ -99,10 +125,9 @@ const TeacherManagement = () => {
                 role: 'teacher',
                 is_class_teacher: formData.is_class_teacher,
                 class_id_assigned: formData.is_class_teacher ? formData.class_id_assigned : null,
-                subjects: formData.subjects.split(',').map(s => s.trim()).filter(s => s)
+                subject_assignments: formData.subject_assignments.filter(a => a.subject_id && a.class_id)
             };
 
-            // Add password for new teachers or if password is updated
             if (formData.password) {
                 teacherData.password = formData.password;
             }
@@ -112,16 +137,13 @@ const TeacherManagement = () => {
             } else {
                 if (!formData.password) {
                     alert('Password is required for new teachers');
-                    setLoading(false);
                     return;
                 }
 
-                // UID Check
                 const q = query(collection(db, 'teachers'), where('college_id', '==', userData.college_id), where('uid', '==', formData.uid));
                 const snapshot = await getDocs(q);
                 if (!snapshot.empty) {
                     alert('This UID is already assigned to another teacher.');
-                    setLoading(false);
                     return;
                 }
 
@@ -141,8 +163,6 @@ const TeacherManagement = () => {
     };
 
     const handleDelete = async (id) => {
-        // We shouldn't delete teachers if they have history, just deactivate.
-        // But if admin really wants to delete:
         if (window.confirm("Are you sure? Deleting a teacher may break timetable and history. We recommend deactivating instead.")) {
             await deleteDoc(doc(db, 'teachers', id));
             fetchData();
@@ -158,6 +178,11 @@ const TeacherManagement = () => {
     const getClassName = (classId) => {
         const cls = classes.find(c => c.id === classId);
         return cls ? `${cls.branch} - ${cls.section}` : '-';
+    };
+
+    const getSubjectName = (subjectId) => {
+        const sub = subjects.find(s => s.id === subjectId);
+        return sub ? sub.name : '-';
     };
 
     const filteredTeachers = teachers.filter(t =>
@@ -213,7 +238,7 @@ const TeacherManagement = () => {
                                 <th>Name</th>
                                 <th>Email</th>
                                 <th>Class Teacher</th>
-                                <th>Subjects</th>
+                                <th>Assignments</th>
                                 <th style={{ width: '100px' }}>Actions</th>
                             </tr>
                         </thead>
@@ -234,9 +259,14 @@ const TeacherManagement = () => {
                                         )}
                                     </td>
                                     <td>
-                                        <span style={{ fontSize: '0.8125rem', color: 'var(--text-muted)' }}>
-                                            {Array.isArray(teacher.subjects) ? teacher.subjects.join(', ') : '-'}
-                                        </span>
+                                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
+                                            {(teacher.subject_assignments || []).map((asgn, i) => (
+                                                <span key={i} className="badge badge-primary" style={{ fontSize: '0.7rem' }}>
+                                                    {getSubjectName(asgn.subject_id)} ({getClassName(asgn.class_id)})
+                                                </span>
+                                            ))}
+                                            {(!teacher.subject_assignments || teacher.subject_assignments.length === 0) && '-'}
+                                        </div>
                                     </td>
                                     <td>
                                         <div style={{ display: 'flex', gap: '0.5rem' }}>
@@ -265,7 +295,7 @@ const TeacherManagement = () => {
             {/* Modal */}
             {showModal && (
                 <div className="modal-overlay">
-                    <div className="modal">
+                    <div className="modal" style={{ maxWidth: '700px' }}>
                         <div className="modal-header">
                             <h3 className="modal-title">{editingTeacher ? 'Edit Teacher' : 'Create New Teacher'}</h3>
                             <button className="modal-close" onClick={() => setShowModal(false)}>
@@ -273,7 +303,7 @@ const TeacherManagement = () => {
                             </button>
                         </div>
                         <form onSubmit={handleSubmit}>
-                            <div className="modal-body">
+                            <div className="modal-body" style={{ maxHeight: '70vh', overflowY: 'auto' }}>
                                 <div className="form-row">
                                     <div className="form-group">
                                         <label className="form-label">Teacher UID (3 letters)</label>
@@ -326,18 +356,60 @@ const TeacherManagement = () => {
                                     />
                                 </div>
 
-                                <div className="form-group">
-                                    <label className="form-label">Subjects (comma separated)</label>
-                                    <input
-                                        type="text"
-                                        className="form-input"
-                                        placeholder="e.g. Mathematics, Physics"
-                                        value={formData.subjects}
-                                        onChange={(e) => setFormData({ ...formData, subjects: e.target.value })}
-                                    />
+                                <div className="assignments-section" style={{ marginTop: '1.5rem', padding: '1.5rem', background: 'rgba(30, 41, 59, 0.4)', borderRadius: '12px', border: '1px solid var(--border-color)' }}>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                                        <label className="form-label" style={{ marginBottom: 0 }}>Subject & Class Assignments</label>
+                                        <button type="button" className="btn btn-sm btn-secondary" onClick={handleAddAssignment}>
+                                            <Plus size={14} /> Add Assignment
+                                        </button>
+                                    </div>
+
+                                    {formData.subject_assignments.length === 0 ? (
+                                        <p style={{ fontSize: '0.875rem', color: 'var(--text-muted)', textAlign: 'center', py: '1rem' }}>
+                                            No assignments added yet.
+                                        </p>
+                                    ) : (
+                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                                            {formData.subject_assignments.map((asgn, index) => (
+                                                <div key={index} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 40px', gap: '0.5rem', alignItems: 'end' }}>
+                                                    <div className="form-group" style={{ marginBottom: 0 }}>
+                                                        <label className="form-label" style={{ fontSize: '0.7rem' }}>Subject</label>
+                                                        <select
+                                                            className="form-select"
+                                                            required
+                                                            value={asgn.subject_id}
+                                                            onChange={(e) => handleUpdateAssignment(index, 'subject_id', e.target.value)}
+                                                        >
+                                                            <option value="">Select Subject</option>
+                                                            {subjects.map(sub => (
+                                                                <option key={sub.id} value={sub.id}>{sub.name} ({sub.code})</option>
+                                                            ))}
+                                                        </select>
+                                                    </div>
+                                                    <div className="form-group" style={{ marginBottom: 0 }}>
+                                                        <label className="form-label" style={{ fontSize: '0.7rem' }}>Class</label>
+                                                        <select
+                                                            className="form-select"
+                                                            required
+                                                            value={asgn.class_id}
+                                                            onChange={(e) => handleUpdateAssignment(index, 'class_id', e.target.value)}
+                                                        >
+                                                            <option value="">Select Class</option>
+                                                            {classes.map(cls => (
+                                                                <option key={cls.id} value={cls.id}>{cls.branch} - {cls.section}</option>
+                                                            ))}
+                                                        </select>
+                                                    </div>
+                                                    <button type="button" className="btn btn-icon btn-danger btn-sm" onClick={() => handleRemoveAssignment(index)}>
+                                                        <Trash2 size={14} />
+                                                    </button>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
                                 </div>
 
-                                <div className="form-group">
+                                <div className="form-group" style={{ marginTop: '1.5rem' }}>
                                     <label className="checkbox-group">
                                         <input
                                             type="checkbox"

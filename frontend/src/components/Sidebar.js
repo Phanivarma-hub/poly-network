@@ -28,7 +28,6 @@ const Sidebar = () => {
         { to: '/admin/classes', icon: GraduationCap, label: 'Classes' },
         { to: '/admin/teachers', icon: Users, label: 'Teachers' },
         { to: '/admin/students', icon: Users, label: 'Students' },
-        { to: '/admin/assignments', icon: FileText, label: 'Teaching Assignments' },
         { to: '/admin/timetables', icon: Calendar, label: 'Timetable' },
         { to: '/admin/attendance', icon: ClipboardList, label: 'Attendance Overview' },
         { to: '/admin/concerns', icon: AlertCircle, label: 'Concerns' },

@@ -20,7 +20,6 @@ import TimetableManagement from './pages/admin/TimetableManagement';
 import AttendanceOverview from './pages/admin/AttendanceOverview';
 import ConcernsManagement from './pages/admin/ConcernsManagement';
 import SubjectManagement from './pages/admin/SubjectManagement';
-import AssignmentManagement from './pages/admin/AssignmentManagement';
 
 // Super Admin pages
 import SuperAdminDashboard from './pages/super-admin/SuperAdminDashboard';
@@ -76,7 +75,6 @@ function App() {
                     <Route path="attendance" element={<AttendanceOverview />} />
                     <Route path="concerns" element={<ConcernsManagement />} />
                     <Route path="subjects" element={<SubjectManagement />} />
-                    <Route path="assignments" element={<AssignmentManagement />} />
                   </Routes>
                 </MainLayout>
               </ProtectedRoute>

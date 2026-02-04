@@ -97,8 +97,8 @@ const StudentRegister = () => {
                     }
                 } else if (pinRule.type === 'range') {
                     const pinNum = parseInt(formData.pin);
-                    if (isNaN(pinNum) || pinNum < pinRule.min || pinNum > pinRule.max) {
-                        setError(`PIN must be between ${pinRule.min} and ${pinRule.max}`);
+                    if (!/^\d+$/.test(formData.pin) || isNaN(pinNum) || pinNum < pinRule.min || pinNum > pinRule.max) {
+                        setError(`PIN must be a number between ${pinRule.min} and ${pinRule.max}`);
                         setLoading(false);
                         return;
                     }

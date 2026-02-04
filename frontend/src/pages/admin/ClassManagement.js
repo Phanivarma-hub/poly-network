@@ -2,11 +2,12 @@ import React, { useState, useEffect } from 'react';
 import { db } from '../../firebase';
 import { collection, query, where, getDocs, addDoc, doc, deleteDoc, updateDoc } from 'firebase/firestore';
 import { useAuth } from '../../context/AuthContext';
-import { Plus, Trash2, Edit2, X, Loader2, Search } from 'lucide-react';
+import { Plus, Trash2, Edit2, X, Loader2, Search, BookOpen } from 'lucide-react';
 
 const ClassManagement = () => {
     const { userData } = useAuth();
     const [classes, setClasses] = useState([]);
+    const [subjects, setSubjects] = useState([]);
     const [loading, setLoading] = useState(true);
     const [showModal, setShowModal] = useState(false);
     const [editingClass, setEditingClass] = useState(null);
@@ -16,10 +17,9 @@ const ClassManagement = () => {
         year: '1',
         semester: '1',
         section: 'A',
-        pinValidationType: 'regex',
-        pinPattern: '^[0-9]{5}$',
-        pinMin: 10000,
-        pinMax: 99999
+        subject_sessions: {},
+        pinMin: '',
+        pinMax: ''
     });
 
     const yearOptions = [
@@ -44,8 +44,21 @@ const ClassManagement = () => {
         }
     };
 
+    const fetchSubjects = async () => {
+        if (!userData?.college_id) return;
+        try {
+            const q = query(collection(db, 'subjects'), where('college_id', '==', userData.college_id));
+            const snapshot = await getDocs(q);
+            const list = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+            setSubjects(list);
+        } catch (err) {
+            console.error("Error fetching subjects:", err);
+        }
+    };
+
     useEffect(() => {
         fetchClasses();
+        fetchSubjects();
     }, [userData]);
 
     const resetForm = () => {
@@ -54,10 +67,9 @@ const ClassManagement = () => {
             year: '1',
             semester: '1',
             section: 'A',
-            pinValidationType: 'regex',
-            pinPattern: '^[0-9]{5}$',
-            pinMin: 10000,
-            pinMax: 99999
+            subject_sessions: {},
+            pinMin: '',
+            pinMax: ''
         });
         setEditingClass(null);
     };
@@ -70,15 +82,24 @@ const ClassManagement = () => {
                 year: cls.year,
                 semester: cls.semester,
                 section: cls.section,
-                pinValidationType: cls.pin_validation_rule.type,
-                pinPattern: cls.pin_validation_rule.pattern || '^[0-9]{5}$',
-                pinMin: cls.pin_validation_rule.min || 10000,
-                pinMax: cls.pin_validation_rule.max || 99999
+                subject_sessions: cls.subject_sessions || {},
+                pinMin: cls.pin_validation_rule?.min || '',
+                pinMax: cls.pin_validation_rule?.max || ''
             });
         } else {
             resetForm();
         }
         setShowModal(true);
+    };
+
+    const handleSessionChange = (subjectId, sessions) => {
+        setFormData({
+            ...formData,
+            subject_sessions: {
+                ...formData.subject_sessions,
+                [subjectId]: parseInt(sessions) || 0
+            }
+        });
     };
 
     const handleSubmit = async (e) => {
@@ -90,15 +111,18 @@ const ClassManagement = () => {
                 year: formData.year,
                 semester: formData.semester,
                 section: formData.section,
-                pin_validation_rule: formData.pinValidationType === 'regex'
-                    ? { type: 'regex', pattern: formData.pinPattern }
-                    : { type: 'range', min: parseInt(formData.pinMin), max: parseInt(formData.pinMax) }
+                subject_sessions: formData.subject_sessions,
+                pin_validation_rule: {
+                    type: 'range',
+                    min: parseInt(formData.pinMin),
+                    max: parseInt(formData.pinMax)
+                }
             };
 
             if (editingClass) {
                 await updateDoc(doc(db, 'classes', editingClass.id), classData);
             } else {
-                await addDoc(collection(db, 'classes'), classData);
+                await addDoc(collection(db, 'classes'), { ...classData, status: 'active' });
             }
 
             setShowModal(false);
@@ -150,7 +174,7 @@ const ClassManagement = () => {
             <div className="page-header">
                 <div>
                     <h1 className="page-title">Class Management</h1>
-                    <p className="page-description">Manage academic units and PIN validation rules.</p>
+                    <p className="page-description">Manage academic units and subject sessions.</p>
                 </div>
                 <button className="btn btn-primary" onClick={() => openModal()}>
                     <Plus size={16} />
@@ -184,7 +208,7 @@ const ClassManagement = () => {
                                 <th>Year</th>
                                 <th>Semester</th>
                                 <th>Section</th>
-                                <th>PIN Rule</th>
+                                <th>Subjects Configured</th>
                                 <th style={{ width: '100px' }}>Actions</th>
                             </tr>
                         </thead>
@@ -196,12 +220,16 @@ const ClassManagement = () => {
                                     <td>{cls.semester}</td>
                                     <td><span className="badge badge-primary">{cls.section}</span></td>
                                     <td>
-                                        <code style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                                            {cls.pin_validation_rule.type === 'regex'
-                                                ? `Regex: ${cls.pin_validation_rule.pattern}`
-                                                : `Range: ${cls.pin_validation_rule.min} - ${cls.pin_validation_rule.max}`
-                                            }
-                                        </code>
+                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+                                            <span className="badge badge-secondary">
+                                                {Object.keys(cls.subject_sessions || {}).length} Subjects
+                                            </span>
+                                            {cls.pin_validation_rule && (
+                                                <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>
+                                                    PIN: {cls.pin_validation_rule.min} - {cls.pin_validation_rule.max}
+                                                </span>
+                                            )}
+                                        </div>
                                     </td>
                                     <td>
                                         <div style={{ display: 'flex', gap: '0.5rem' }}>
@@ -230,7 +258,7 @@ const ClassManagement = () => {
             {/* Modal */}
             {showModal && (
                 <div className="modal-overlay">
-                    <div className="modal">
+                    <div className="modal" style={{ maxWidth: '600px' }}>
                         <div className="modal-header">
                             <h3 className="modal-title">{editingClass ? 'Edit Class' : 'Create New Class'}</h3>
                             <button className="modal-close" onClick={() => setShowModal(false)}>
@@ -238,7 +266,7 @@ const ClassManagement = () => {
                             </button>
                         </div>
                         <form onSubmit={handleSubmit}>
-                            <div className="modal-body">
+                            <div className="modal-body" style={{ maxHeight: '70vh', overflowY: 'auto' }}>
                                 <div className="form-group">
                                     <label className="form-label">Branch Name</label>
                                     <input
@@ -291,59 +319,70 @@ const ClassManagement = () => {
                                     />
                                 </div>
 
-                                <div className="form-group">
-                                    <label className="form-label">PIN Validation Type</label>
-                                    <div style={{ display: 'flex', gap: '0.5rem' }}>
-                                        <button
-                                            type="button"
-                                            className={`btn btn-sm ${formData.pinValidationType === 'regex' ? 'btn-primary' : 'btn-secondary'}`}
-                                            onClick={() => setFormData({ ...formData, pinValidationType: 'regex' })}
-                                        >
-                                            Regex Pattern
-                                        </button>
-                                        <button
-                                            type="button"
-                                            className={`btn btn-sm ${formData.pinValidationType === 'range' ? 'btn-primary' : 'btn-secondary'}`}
-                                            onClick={() => setFormData({ ...formData, pinValidationType: 'range' })}
-                                        >
-                                            Numeric Range
-                                        </button>
-                                    </div>
-                                </div>
-
-                                {formData.pinValidationType === 'regex' ? (
-                                    <div className="form-group">
-                                        <label className="form-label">Regex Pattern</label>
-                                        <input
-                                            type="text"
-                                            className="form-input"
-                                            placeholder="e.g. ^24CS[0-9]{3}$"
-                                            value={formData.pinPattern}
-                                            onChange={(e) => setFormData({ ...formData, pinPattern: e.target.value })}
-                                        />
-                                    </div>
-                                ) : (
+                                <div className="form-group" style={{ marginTop: '1rem' }}>
+                                    <label className="form-label">PIN Range (Numeric)</label>
                                     <div className="form-row">
-                                        <div className="form-group">
-                                            <label className="form-label">Min Value</label>
+                                        <div style={{ flex: 1 }}>
+                                            <label style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginBottom: '0.25rem', display: 'block' }}>Min PIN</label>
                                             <input
                                                 type="number"
                                                 className="form-input"
+                                                required
+                                                placeholder="e.g. 199"
                                                 value={formData.pinMin}
                                                 onChange={(e) => setFormData({ ...formData, pinMin: e.target.value })}
                                             />
                                         </div>
-                                        <div className="form-group">
-                                            <label className="form-label">Max Value</label>
+                                        <div style={{ flex: 1 }}>
+                                            <label style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginBottom: '0.25rem', display: 'block' }}>Max PIN</label>
                                             <input
                                                 type="number"
                                                 className="form-input"
+                                                required
+                                                placeholder="e.g. 259"
                                                 value={formData.pinMax}
                                                 onChange={(e) => setFormData({ ...formData, pinMax: e.target.value })}
                                             />
                                         </div>
                                     </div>
-                                )}
+                                </div>
+
+                                <div className="subjects-section" style={{ marginTop: '1.5rem' }}>
+                                    <label className="form-label" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem' }}>
+                                        <BookOpen size={18} />
+                                        Subject Sessions (Classes per week)
+                                    </label>
+
+                                    {subjects.length === 0 ? (
+                                        <p style={{ fontSize: '0.875rem', color: 'var(--text-muted)', textAlign: 'center', padding: '1rem', background: 'var(--bg-secondary)', borderRadius: '8px' }}>
+                                            No subjects found. Please add subjects in Subject Management first.
+                                        </p>
+                                    ) : (
+                                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 100px', gap: '0.75rem', alignItems: 'center' }}>
+                                            <div style={{ fontWeight: 600, fontSize: '0.75rem', color: 'var(--text-muted)', textTransform: 'uppercase' }}>Subject</div>
+                                            <div style={{ fontWeight: 600, fontSize: '0.75rem', color: 'var(--text-muted)', textTransform: 'uppercase', textAlign: 'center' }}>Sessions</div>
+
+                                            {subjects.map(sub => (
+                                                <React.Fragment key={sub.id}>
+                                                    <div style={{ display: 'flex', flexDirection: 'column' }}>
+                                                        <span style={{ fontWeight: 500 }}>{sub.name}</span>
+                                                        <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{sub.code} • {sub.type}</span>
+                                                    </div>
+                                                    <input
+                                                        type="number"
+                                                        className="form-input"
+                                                        min="0"
+                                                        max="20"
+                                                        placeholder="0"
+                                                        value={formData.subject_sessions[sub.id] || ''}
+                                                        onChange={(e) => handleSessionChange(sub.id, e.target.value)}
+                                                        style={{ textAlign: 'center' }}
+                                                    />
+                                                </React.Fragment>
+                                            ))}
+                                        </div>
+                                    )}
+                                </div>
                             </div>
                             <div className="modal-footer">
                                 <button type="button" className="btn btn-secondary" onClick={() => setShowModal(false)}>
