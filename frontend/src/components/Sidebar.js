@@ -54,6 +54,7 @@ const Sidebar = () => {
 
     const studentLinks = [
         { to: '/student', icon: LayoutDashboard, label: 'Dashboard', end: true },
+        { to: '/student/attendance', icon: ClipboardList, label: 'Attendance' },
         { to: '/student/quizzes', icon: FileText, label: 'Quizzes' },
         { to: '/student/materials', icon: BookOpen, label: 'Materials' },
         { to: '/student/concerns', icon: MessageSquare, label: 'Raise a Concern' },

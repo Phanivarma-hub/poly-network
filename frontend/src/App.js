@@ -38,6 +38,8 @@ import StudentTimetable from './pages/student/StudentTimetable';
 import StudentQuizzes from './pages/student/StudentQuizzes';
 import StudentMaterials from './pages/student/StudentMaterials';
 import StudentConcerns from './pages/student/StudentConcerns';
+import StudentProfile from './pages/student/StudentProfile';
+import StudentAttendance from './pages/student/StudentAttendance';
 
 import './styles/styles.css';
 
@@ -108,6 +110,8 @@ function App() {
                 <MainLayout>
                   <Routes>
                     <Route index element={<StudentDashboard />} />
+                    <Route path="attendance" element={<StudentAttendance />} />
+                    <Route path="profile" element={<StudentProfile />} />
                     <Route path="timetable" element={<StudentTimetable />} />
                     <Route path="quizzes" element={<StudentQuizzes />} />
                     <Route path="materials" element={<StudentMaterials />} />

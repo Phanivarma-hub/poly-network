@@ -159,6 +159,7 @@ const StudentManagement = () => {
                     class_id: selectedClass === 'all' ? student.class_id : selectedClass,
                     role: 'student',
                     status: 'active',
+                    password: student.pin.toString(), // Default password is the PIN
                     must_change_password: true,
                     created_at: new Date()
                 };
@@ -189,7 +190,7 @@ const StudentManagement = () => {
             s.pin.toLowerCase().includes(searchTerm.toLowerCase());
         const matchesClass = selectedClass === 'all' || s.class_id === selectedClass;
         return matchesSearch && matchesClass;
-    });
+    }).sort((a, b) => a.pin.localeCompare(b.pin, undefined, { numeric: true }));
 
     if (loading) return <div className="loading">Loading students...</div>;
 

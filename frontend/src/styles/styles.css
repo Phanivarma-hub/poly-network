@@ -5,41 +5,41 @@
 
 /* CSS Variables */
 :root {
-    /* Colors - Dark Theme */
-    --bg-primary: #0f172a;
-    --bg-secondary: #1e293b;
-    --bg-tertiary: #334155;
-    --bg-card: #1e293b;
-    --bg-hover: #334155;
+    /* Colors - Light Purple Theme */
+    --bg-primary: #F5F7FA;
+    --bg-secondary: #FFFFFF;
+    --bg-tertiary: #F3F4F6;
+    --bg-card: #FFFFFF;
+    --bg-hover: #F1F5F9;
 
     /* Text Colors */
-    --text-primary: #f8fafc;
-    --text-secondary: #cbd5e1;
-    --text-muted: #64748b;
-    --text-placeholder: #475569;
+    --text-primary: #111827;
+    --text-secondary: #4B5563;
+    --text-muted: #9CA3AF;
+    --text-placeholder: #D1D5DB;
 
     /* Accent Colors */
-    --accent-primary: #6366f1;
-    --accent-primary-hover: #818cf8;
-    --accent-secondary: #8b5cf6;
-    --accent-success: #22c55e;
-    --accent-warning: #f59e0b;
-    --accent-danger: #ef4444;
+    --accent-primary: #7C3AED;
+    --accent-primary-hover: #6D28D9;
+    --accent-secondary: #8B5CF6;
+    --accent-success: #10B981;
+    --accent-warning: #F59E0B;
+    --accent-danger: #EF4444;
 
     /* Borders */
-    --border-color: #334155;
-    --border-light: rgba(255, 255, 255, 0.1);
+    --border-color: #E5E7EB;
+    --border-light: rgba(0, 0, 0, 0.05);
 
     /* Shadows */
-    --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.2);
-    --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.25);
-    --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.3);
+    --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
+    --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+    --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
 
     /* Dimensions */
     --navbar-height: 64px;
     --sidebar-width: 240px;
-    --border-radius: 8px;
-    --border-radius-lg: 12px;
+    --border-radius: 12px;
+    --border-radius-lg: 16px;
 
     /* Typography */
     --font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
@@ -788,4 +788,289 @@ p {
     .navbar {
         padding: 0 1rem;
     }
+}
+
+/* Animations & Micro-interactions */
+@keyframes countUp {
+    from {
+        stroke-dasharray: 0 100;
+    }
+}
+
+@keyframes popIn {
+    0% {
+        transform: scale(0.8);
+        opacity: 0;
+    }
+
+    70% {
+        transform: scale(1.05);
+    }
+
+    100% {
+        transform: scale(1);
+        opacity: 1;
+    }
+}
+
+@keyframes slideUpFade {
+    from {
+        transform: translateY(20px);
+        opacity: 0;
+    }
+
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+@keyframes ripple {
+    0% {
+        transform: scale(0);
+        opacity: 0.5;
+    }
+
+    100% {
+        transform: scale(4);
+        opacity: 0;
+    }
+}
+
+@keyframes bounceSmall {
+
+    0%,
+    100% {
+        transform: translateY(0);
+    }
+
+    50% {
+        transform: translateY(-4px);
+    }
+}
+
+@keyframes glowPulse {
+
+    0%,
+    100% {
+        box-shadow: 0 0 5px rgba(124, 58, 237, 0.2);
+    }
+
+    50% {
+        box-shadow: 0 0 15px rgba(124, 58, 237, 0.4);
+    }
+}
+
+/* Base Enhanced Styles */
+.card,
+.stat-card {
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    border: 1px solid var(--border-color);
+    position: relative;
+    overflow: hidden;
+}
+
+.card:hover,
+.stat-card:hover {
+    transform: translateY(-5px) scale(1.01);
+    box-shadow: 0 12px 24px -10px rgba(0, 0, 0, 0.15);
+    border-color: var(--accent-primary);
+}
+
+.card:hover::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: linear-gradient(90deg, var(--accent-primary), var(--accent-secondary));
+    animation: fadeIn 0.3s ease;
+}
+
+.btn {
+    position: relative;
+    overflow: hidden;
+    transition: all 0.2s ease;
+}
+
+.btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(124, 58, 237, 0.2);
+}
+
+.btn:active {
+    transform: scale(0.95);
+}
+
+/* Gamification Elements */
+.streak-badge {
+    background: linear-gradient(135deg, #FF6B6B, #FFD93D);
+    color: white;
+    padding: 4px 12px;
+    border-radius: 99px;
+    font-weight: 700;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.8rem;
+    box-shadow: 0 4px 10px rgba(255, 107, 107, 0.3);
+    animation: bounceSmall 2s infinite ease-in-out;
+}
+
+.perfect-week-star {
+    color: #FFD93D;
+    filter: drop-shadow(0 0 4px rgba(255, 217, 61, 0.6));
+}
+
+/* Progress Enhancements */
+.circular-progress-glow {
+    filter: drop-shadow(0 0 8px var(--accent-success));
+}
+
+.page-transition-enter {
+    animation: slideUpFade 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.calendar-day {
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.calendar-day:hover {
+    transform: scale(1.15);
+    z-index: 10;
+    box-shadow: var(--shadow-md);
+}
+
+.calendar-day.present {
+    animation: popIn 0.3s ease-out;
+}
+
+.calendar-day.absent {
+    animation: fadeIn 0.5s ease-in;
+}
+
+/* Status Message Bubbles */
+.status-message-box {
+    padding: 1rem;
+    border-radius: var(--border-radius);
+    background: rgba(124, 58, 237, 0.05);
+    border-left: 4px solid var(--accent-primary);
+    margin-top: 1rem;
+    font-size: 0.9rem;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+/* Micro icons bounce */
+.icon-bounce:hover {
+    animation: bounceSmall 0.5s ease-in-out;
+}
+
+/* Animations */
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.fade-in {
+    animation: fadeIn 0.4s ease-out forwards;
+}
+
+/* Skeleton Loading */
+.skeleton {
+    background: linear-gradient(90deg, var(--bg-secondary) 25%, var(--bg-hover) 50%, var(--bg-secondary) 75%);
+    background-size: 200% 100%;
+    animation: skeleton-loading 1.5s infinite;
+    border-radius: var(--border-radius);
+}
+
+@keyframes skeleton-loading {
+    0% {
+        background-position: 200% 0;
+    }
+
+    100% {
+        background-position: -200% 0;
+    }
+}
+
+/* Modern Card Hover Effects */
+.stat-card,
+.card {
+    transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+}
+
+.stat-card:hover,
+.card:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-md);
+    border-color: rgba(99, 102, 241, 0.3);
+}
+
+/* Sidebar Active Glow */
+.nav-link.active {
+    background: linear-gradient(90deg, rgba(124, 58, 237, 0.15) 0%, rgba(124, 58, 237, 0.02) 100%);
+    border-left: 3px solid var(--accent-primary);
+    color: var(--accent-primary);
+    box-shadow: 0 0 15px rgba(124, 58, 237, 0.1);
+}
+
+.nav-link svg {
+    transition: transform 0.2s ease;
+}
+
+.nav-link:hover svg,
+.nav-link.active svg {
+    transform: scale(1.15);
+}
+
+/* Notification Badge */
+.notification-btn {
+    position: relative;
+    padding: 0.5rem;
+    border-radius: 50%;
+    color: var(--text-secondary);
+    transition: color 0.2s, background-color 0.2s;
+}
+
+.notification-btn:hover {
+    color: var(--text-primary);
+    background-color: var(--bg-hover);
+}
+
+.notification-badge {
+    position: absolute;
+    top: 4px;
+    right: 4px;
+    width: 8px;
+    height: 8px;
+    background-color: var(--accent-danger);
+    border-radius: 50%;
+    border: 1px solid var(--bg-secondary);
+}
+
+/* Progress Bar */
+.progress-bar-bg {
+    width: 100%;
+    height: 8px;
+    background-color: var(--bg-tertiary);
+    border-radius: 99px;
+    overflow: hidden;
+    margin-top: 0.5rem;
+}
+
+.progress-bar-fill {
+    height: 100%;
+    background-color: var(--accent-primary);
+    border-radius: 99px;
+    transition: width 0.8s cubic-bezier(0.16, 1, 0.3, 1);
 }

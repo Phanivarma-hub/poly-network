@@ -76,6 +76,8 @@ const AttendanceMarking = () => {
                 );
                 const studentsSnapshot = await getDocs(studentsQuery);
                 const studentsList = studentsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                // Sort by PIN ascending (numeric safe)
+                studentsList.sort((a, b) => a.pin.localeCompare(b.pin, undefined, { numeric: true }));
                 setStudents(studentsList);
 
                 // Check for existing attendance record

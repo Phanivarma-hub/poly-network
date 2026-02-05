@@ -93,21 +93,42 @@ export function AuthProvider({ children }) {
         }
 
         // 3. Ensure the found user has an associated email for Firebase Auth
-        if (!userEmail) {
+        if (requiresFirebaseAuth && !userEmail) {
             throw new Error('This account is not fully registered (missing email address). Please contact your administrator.');
         }
 
-        // 4. Sign in with Firebase Auth using the resolved email
-        try {
-            await signInWithEmailAndPassword(auth, userEmail, password);
-        } catch (authError) {
-            if (authError.code === 'auth/wrong-password' || authError.code === 'auth/invalid-credential') {
+        // 4. Sign in
+        if (requiresFirebaseAuth) {
+            // Sign in with Firebase Auth using the resolved email
+            try {
+                await signInWithEmailAndPassword(auth, userEmail, password);
+            } catch (authError) {
+                if (authError.code === 'auth/wrong-password' || authError.code === 'auth/invalid-credential') {
+                    throw new Error('Incorrect password for this user.');
+                }
+                if (authError.code === 'auth/user-not-found') {
+                    throw new Error('No authentication account found for this email. Registration may be incomplete.');
+                }
+                throw authError;
+            }
+        } else {
+            // Verify password directly from Firestore document (for Students/Teachers using direct auth)
+            // If password is missing (csv import), default to PIN
+            const validPassword = foundUserDoc.password || foundUserDoc.pin.toString();
+
+            if (validPassword !== password) {
+                console.log("Password mismatch details:", {
+                    hasStoredPassword: !!foundUserDoc.password,
+                    storedPassword: foundUserDoc.password,
+                    expectedDefault: foundUserDoc.pin,
+                    inputReceived: password
+                });
                 throw new Error('Incorrect password for this user.');
             }
-            if (authError.code === 'auth/user-not-found') {
-                throw new Error('No authentication account found for this email. Registration may be incomplete.');
-            }
-            throw authError;
+
+            // Manually set state for non-Firebase auth users
+            setUser({ uid: foundUserDoc.id, email: foundUserDoc.email, ...foundUserDoc });
+            setUserData(foundUserDoc);
         }
 
         if (foundUserDoc.must_change_password) {
