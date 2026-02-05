@@ -62,8 +62,9 @@ export function AuthProvider({ children }) {
                     foundUserDoc = { id: docSnap.id, ...data, college_id: collegeId };
                     userRole = 'teacher';
                     userEmail = data.email;
-                    // Teachers use Firestore password (no Firebase Auth)
-                    requiresFirebaseAuth = false;
+                    // If teacher has an email, they should use Firebase Auth (like admins)
+                    // If they don't, they used local Firestore auth (usually legacy/seeded or specific config)
+                    requiresFirebaseAuth = !!userEmail;
                     break;
                 }
             }
@@ -113,8 +114,8 @@ export function AuthProvider({ children }) {
             }
         } else {
             // Verify password directly from Firestore document (for Students/Teachers using direct auth)
-            // If password is missing (csv import), default to PIN
-            const validPassword = foundUserDoc.password || foundUserDoc.pin.toString();
+            // If password is missing (csv import/seeded), default to PIN (for students)
+            const validPassword = foundUserDoc.password || (foundUserDoc.pin ? foundUserDoc.pin.toString() : '');
 
             if (validPassword !== password) {
                 console.log("Password mismatch details:", {

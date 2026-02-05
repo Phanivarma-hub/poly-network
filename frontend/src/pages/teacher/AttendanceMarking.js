@@ -34,7 +34,9 @@ const AttendanceMarking = () => {
                     where('teacher_id', '==', userData.uid)
                 );
                 const assignmentSnapshot = await getDocs(assignmentQuery);
-                const assignedClassIds = [...new Set(assignmentSnapshot.docs.map(doc => doc.data().class_id))];
+                const fromAssignmentsCollection = assignmentSnapshot.docs.map(doc => doc.data().class_id);
+                const fromUserDoc = (userData.subject_assignments || []).map(a => a.class_id);
+                const assignedClassIds = [...new Set([...fromAssignmentsCollection, ...fromUserDoc])];
 
                 // Add class teacher's class if applicable
                 if (userData.is_class_teacher && userData.class_id_assigned) {
