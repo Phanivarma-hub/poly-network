@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { db } from '../../firebase';
-import { collection, query, where, getDocs } from 'firebase/firestore';
+import { collection, query, where, getDocs, orderBy, limit } from 'firebase/firestore';
 import {
     Calendar, FileText, BookOpen, TrendingUp, TrendingDown,
     Activity, Clock, AlertTriangle, Download, ChevronRight, CheckCircle,
-    Flame, Star, Trophy, Bell, Zap, PlayCircle
+    Flame, Star, Trophy, Bell, Zap, PlayCircle, Megaphone
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
@@ -16,9 +16,10 @@ const StudentDashboard = () => {
         materials: 0,
         quizzes: 0,
         attendance: 0,
-        pendingAssignments: 0,
+        pendingAssignments: 3,
         streak: 7
     });
+    const [recentUpdates, setRecentUpdates] = useState([]);
     const [loading, setLoading] = useState(true);
 
     const getDayName = () => {
@@ -64,13 +65,32 @@ const StudentDashboard = () => {
                 });
                 const attPercentage = attSnapshot.size > 0 ? Math.round((presentCount / attSnapshot.size) * 100) : 100;
 
-                setStats({
+                setStats(prev => ({
+                    ...prev,
                     materials: matsSnapshot.size,
                     quizzes: quizSnapshot.size,
-                    attendance: attPercentage,
-                    pendingAssignments: 3,
-                    streak: 7
-                });
+                    attendance: attPercentage
+                }));
+
+                // Fetch recent updates from notifications
+                const updatesQuery = query(
+                    collection(db, 'notifications'),
+                    where('college_id', '==', userData.college_id)
+                );
+                const updatesSnapshot = await getDocs(updatesQuery);
+                const list = updatesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+
+                // Filter for student and sort
+                const filtered = list
+                    .filter(n =>
+                        n.target_type === 'college' ||
+                        (n.target_type === 'class' && n.target_id === userData.class_id)
+                    )
+                    .sort((a, b) => (b.created_at?.toMillis() || 0) - (a.created_at?.toMillis() || 0))
+                    .slice(0, 5);
+
+                setRecentUpdates(filtered);
+
             } catch (error) {
                 console.error('Error fetching data:', error);
             } finally {
@@ -80,6 +100,32 @@ const StudentDashboard = () => {
 
         fetchData();
     }, [userData]);
+
+    const getUpdateIcon = (type) => {
+        switch (type) {
+            case 'quiz': return <div className="update-icon-box primary"><FileText size={18} /></div>;
+            case 'material': return <div className="update-icon-box success"><Download size={18} /></div>;
+            case 'notice': return <div className="update-icon-box warning"><Megaphone size={18} /></div>;
+            default: return <div className="update-icon-box info"><Activity size={18} /></div>;
+        }
+    };
+
+    const getUpdateTime = (timestamp) => {
+        if (!timestamp) return 'Just now';
+        const date = timestamp.toDate();
+        const now = new Date();
+        const diffInSeconds = Math.floor((now - date) / 1000);
+
+        if (diffInSeconds < 60) return 'Just now';
+
+        const diffInMinutes = Math.floor(diffInSeconds / 60);
+        if (diffInMinutes < 60) return `${diffInMinutes}m ago`;
+
+        const diffInHours = Math.floor(diffInMinutes / 60);
+        if (diffInHours < 24) return `${diffInHours}h ago`;
+
+        return date.toLocaleDateString();
+    };
 
     if (loading) {
         return (
@@ -210,33 +256,33 @@ const StudentDashboard = () => {
                             <Bell size={18} style={{ marginRight: '0.5rem', verticalAlign: 'middle' }} />
                             Recent Updates
                         </h3>
-                        <span className="badge badge-primary">New</span>
+                        <button className="btn btn-secondary btn-sm" onClick={() => navigate('/student/notices')}>View All</button>
                     </div>
-                    <div className="updates-list">
-                        <div className="update-item-modern">
-                            <div className="update-icon-box primary"><FileText size={18} /></div>
-                            <div className="update-content">
-                                <div className="update-title">New Quiz: Java Inheritance</div>
-                                <div className="update-meta">Posted by Dr. Sharma • 2 hours ago</div>
+                    <div className="updates-list stagger-list">
+                        {recentUpdates.length === 0 ? (
+                            <div className="empty-state" style={{ padding: '2rem' }}>
+                                <p>No recent updates</p>
                             </div>
-                            <button className="btn btn-secondary btn-sm">Solve</button>
-                        </div>
-                        <div className="update-item-modern">
-                            <div className="update-icon-box success"><Download size={18} /></div>
-                            <div className="update-content">
-                                <div className="update-title">Web Tech Notes - Module 3</div>
-                                <div className="update-meta">Materials updated • 5 hours ago</div>
-                            </div>
-                            <button className="btn btn-secondary btn-sm">View</button>
-                        </div>
-                        <div className="update-item-modern">
-                            <div className="update-icon-box warning"><AlertTriangle size={18} /></div>
-                            <div className="update-content">
-                                <div className="update-title">Mid-term Schedule Released</div>
-                                <div className="update-meta">Examination Cell • Yesterday</div>
-                            </div>
-                            <button className="btn btn-secondary btn-sm">Read</button>
-                        </div>
+                        ) : (
+                            recentUpdates.map(update => (
+                                <div key={update.id} className="update-item-modern">
+                                    {getUpdateIcon(update.type)}
+                                    <div className="update-content">
+                                        <div className="update-title">{update.title}</div>
+                                        <div className="update-meta">
+                                            {update.author_name ? `From ${update.author_name} • ` : ''}
+                                            {getUpdateTime(update.created_at)}
+                                        </div>
+                                    </div>
+                                    <button
+                                        className="btn btn-secondary btn-sm btn-animate"
+                                        onClick={() => navigate(update.link || '#')}
+                                    >
+                                        View
+                                    </button>
+                                </div>
+                            ))
+                        )}
                     </div>
                 </div>
 

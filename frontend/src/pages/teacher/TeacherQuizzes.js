@@ -143,6 +143,22 @@ const TeacherQuizzes = () => {
                 await updateDoc(doc(db, 'quizzes', editingQuiz.id), quizData);
                 quizId = editingQuiz.id;
 
+                // If status changed to active, notify students
+                if (quizData.status === 'active' && editingQuiz.status !== 'active') {
+                    await addDoc(collection(db, 'notifications'), {
+                        college_id: userData.college_id,
+                        type: 'quiz',
+                        title: `New Quiz: ${quizData.title}`,
+                        content: `A new quiz for ${quizData.subject} is now active.`,
+                        target_type: 'class',
+                        target_id: quizData.class_id,
+                        link: '/student/quizzes',
+                        created_at: new Date(),
+                        created_by: userData.uid,
+                        author_name: userData.name
+                    });
+                }
+
                 // Delete old questions
                 const oldQuestions = await fetchQuestions(quizId);
                 for (const q of oldQuestions) {
@@ -151,6 +167,22 @@ const TeacherQuizzes = () => {
             } else {
                 const docRef = await addDoc(collection(db, 'quizzes'), quizData);
                 quizId = docRef.id;
+
+                // Notify if created as active
+                if (quizData.status === 'active') {
+                    await addDoc(collection(db, 'notifications'), {
+                        college_id: userData.college_id,
+                        type: 'quiz',
+                        title: `New Quiz: ${quizData.title}`,
+                        content: `A new quiz for ${quizData.subject} has been posted.`,
+                        target_type: 'class',
+                        target_id: quizData.class_id,
+                        link: '/student/quizzes',
+                        created_at: new Date(),
+                        created_by: userData.uid,
+                        author_name: userData.name
+                    });
+                }
             }
 
             // Add questions
@@ -189,6 +221,22 @@ const TeacherQuizzes = () => {
     const toggleStatus = async (quiz) => {
         const newStatus = quiz.status === 'draft' ? 'active' : quiz.status === 'active' ? 'ended' : 'draft';
         await updateDoc(doc(db, 'quizzes', quiz.id), { status: newStatus });
+
+        if (newStatus === 'active') {
+            await addDoc(collection(db, 'notifications'), {
+                college_id: userData.college_id,
+                type: 'quiz',
+                title: `New Quiz Active: ${quiz.title}`,
+                content: `The quiz for ${quiz.subject} is now active and ready for attempts.`,
+                target_type: 'class',
+                target_id: quiz.class_id,
+                link: '/student/quizzes',
+                created_at: new Date(),
+                created_by: userData.uid,
+                author_name: userData.name
+            });
+        }
+
         fetchData();
     };
 

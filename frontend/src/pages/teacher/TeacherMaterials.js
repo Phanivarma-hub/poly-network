@@ -109,6 +109,20 @@ const TeacherMaterials = () => {
                 await updateDoc(doc(db, 'materials', editingMaterial.id), materialData);
             } else {
                 await addDoc(collection(db, 'materials'), materialData);
+
+                // Notify students
+                await addDoc(collection(db, 'notifications'), {
+                    college_id: userData.college_id,
+                    type: 'material',
+                    title: `New Material: ${materialData.title}`,
+                    content: `New study material for ${materialData.subject} has been uploaded.`,
+                    target_type: 'class',
+                    target_id: materialData.class_id,
+                    link: '/student/materials',
+                    created_at: new Date(),
+                    created_by: userData.uid,
+                    author_name: userData.name
+                });
             }
 
             setShowModal(false);

@@ -14,7 +14,8 @@ import {
     Clock,
     UserCheck,
     User,
-    MessageSquare
+    MessageSquare,
+    Megaphone
 } from 'lucide-react';
 
 const Sidebar = () => {
@@ -32,6 +33,7 @@ const Sidebar = () => {
         { to: '/admin/attendance', icon: ClipboardList, label: 'Attendance Overview' },
         { to: '/admin/calendar', icon: Calendar, label: 'Academic Calendar' },
         { to: '/admin/concerns', icon: AlertCircle, label: 'Concerns' },
+        { to: '/admin/notices', icon: Megaphone, label: 'Notice Board' },
     ];
 
     const superAdminLinks = [
@@ -46,6 +48,7 @@ const Sidebar = () => {
         { to: '/teacher/quizzes', icon: FileText, label: 'Quizzes' },
         { to: '/teacher/materials', icon: BookOpen, label: 'Materials' },
         { to: '/teacher/timetable', icon: Clock, label: 'My Timetable' },
+        { to: '/teacher/notices', icon: Megaphone, label: 'Notices' },
         { to: '/teacher/calendar', icon: Calendar, label: 'Academic Calendar' },
     ];
 
@@ -61,6 +64,7 @@ const Sidebar = () => {
         { to: '/student/materials', icon: BookOpen, label: 'Materials' },
         { to: '/student/calendar', icon: Calendar, label: 'Academic Calendar' },
         { to: '/student/concerns', icon: MessageSquare, label: 'Raise a Concern' },
+        { to: '/student/notices', icon: Megaphone, label: 'Notice Board' },
         { to: '/student/profile', icon: User, label: 'Profile' },
     ];
 

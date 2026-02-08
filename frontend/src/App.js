@@ -20,6 +20,8 @@ import TimetableManagement from './pages/admin/TimetableManagement';
 import AttendanceOverview from './pages/admin/AttendanceOverview';
 import ConcernsManagement from './pages/admin/ConcernsManagement';
 import SubjectManagement from './pages/admin/SubjectManagement';
+import AdminNotices from './pages/admin/AdminNotices';
+
 
 // Super Admin pages
 import SuperAdminDashboard from './pages/super-admin/SuperAdminDashboard';
@@ -31,6 +33,8 @@ import TeacherQuizzes from './pages/teacher/TeacherQuizzes';
 import TeacherMaterials from './pages/teacher/TeacherMaterials';
 import TeacherTimetable from './pages/teacher/TeacherTimetable';
 import StudentTracker from './pages/teacher/StudentTracker';
+import TeacherNotices from './pages/teacher/TeacherNotices';
+
 
 // Student pages
 import StudentDashboard from './pages/student/StudentDashboard';
@@ -41,6 +45,7 @@ import StudentConcerns from './pages/student/StudentConcerns';
 import StudentProfile from './pages/student/StudentProfile';
 import StudentAttendance from './pages/student/StudentAttendance';
 import AcademicCalendar from './pages/shared/AcademicCalendar';
+import NoticeBoard from './pages/student/NoticeBoard';
 
 import './styles/styles.css';
 
@@ -80,6 +85,7 @@ function App() {
                     <Route path="concerns" element={<ConcernsManagement />} />
                     <Route path="subjects" element={<SubjectManagement />} />
                     <Route path="calendar" element={<AcademicCalendar />} />
+                    <Route path="notices" element={<AdminNotices />} />
                   </Routes>
                 </MainLayout>
               </ProtectedRoute>
@@ -100,6 +106,7 @@ function App() {
                     <Route path="timetable" element={<TeacherTimetable />} />
                     <Route path="tracker" element={<StudentTracker />} />
                     <Route path="calendar" element={<AcademicCalendar />} />
+                    <Route path="notices" element={<TeacherNotices />} />
                   </Routes>
                 </MainLayout>
               </ProtectedRoute>
@@ -121,6 +128,7 @@ function App() {
                     <Route path="materials" element={<StudentMaterials />} />
                     <Route path="concerns" element={<StudentConcerns />} />
                     <Route path="calendar" element={<AcademicCalendar />} />
+                    <Route path="notices" element={<NoticeBoard />} />
                   </Routes>
                 </MainLayout>
               </ProtectedRoute>

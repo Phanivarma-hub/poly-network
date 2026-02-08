@@ -9,7 +9,7 @@ const MainLayout = ({ children }) => {
             <Navbar />
             <div className="main-layout">
                 <Sidebar />
-                <main className="main-content">
+                <main className="main-content animate-fade-in">
                     {children}
                 </main>
             </div>
