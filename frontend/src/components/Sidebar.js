@@ -30,6 +30,7 @@ const Sidebar = () => {
         { to: '/admin/students', icon: Users, label: 'Students' },
         { to: '/admin/timetables', icon: Calendar, label: 'Timetable' },
         { to: '/admin/attendance', icon: ClipboardList, label: 'Attendance Overview' },
+        { to: '/admin/calendar', icon: Calendar, label: 'Academic Calendar' },
         { to: '/admin/concerns', icon: AlertCircle, label: 'Concerns' },
     ];
 
@@ -45,6 +46,7 @@ const Sidebar = () => {
         { to: '/teacher/quizzes', icon: FileText, label: 'Quizzes' },
         { to: '/teacher/materials', icon: BookOpen, label: 'Materials' },
         { to: '/teacher/timetable', icon: Clock, label: 'My Timetable' },
+        { to: '/teacher/calendar', icon: Calendar, label: 'Academic Calendar' },
     ];
 
     // Add Student Tracker for class teachers
@@ -57,6 +59,7 @@ const Sidebar = () => {
         { to: '/student/attendance', icon: ClipboardList, label: 'Attendance' },
         { to: '/student/quizzes', icon: FileText, label: 'Quizzes' },
         { to: '/student/materials', icon: BookOpen, label: 'Materials' },
+        { to: '/student/calendar', icon: Calendar, label: 'Academic Calendar' },
         { to: '/student/concerns', icon: MessageSquare, label: 'Raise a Concern' },
         { to: '/student/profile', icon: User, label: 'Profile' },
     ];

@@ -40,8 +40,10 @@ import StudentMaterials from './pages/student/StudentMaterials';
 import StudentConcerns from './pages/student/StudentConcerns';
 import StudentProfile from './pages/student/StudentProfile';
 import StudentAttendance from './pages/student/StudentAttendance';
+import AcademicCalendar from './pages/shared/AcademicCalendar';
 
 import './styles/styles.css';
+
 
 function App() {
   return (
@@ -77,6 +79,7 @@ function App() {
                     <Route path="attendance" element={<AttendanceOverview />} />
                     <Route path="concerns" element={<ConcernsManagement />} />
                     <Route path="subjects" element={<SubjectManagement />} />
+                    <Route path="calendar" element={<AcademicCalendar />} />
                   </Routes>
                 </MainLayout>
               </ProtectedRoute>
@@ -96,6 +99,7 @@ function App() {
                     <Route path="materials" element={<TeacherMaterials />} />
                     <Route path="timetable" element={<TeacherTimetable />} />
                     <Route path="tracker" element={<StudentTracker />} />
+                    <Route path="calendar" element={<AcademicCalendar />} />
                   </Routes>
                 </MainLayout>
               </ProtectedRoute>
@@ -116,6 +120,7 @@ function App() {
                     <Route path="quizzes" element={<StudentQuizzes />} />
                     <Route path="materials" element={<StudentMaterials />} />
                     <Route path="concerns" element={<StudentConcerns />} />
+                    <Route path="calendar" element={<AcademicCalendar />} />
                   </Routes>
                 </MainLayout>
               </ProtectedRoute>
